@@ -1,5 +1,7 @@
 #include <iostream>
+#include <vector>
 #include "Graph.h"
+#include "utils.h"
 
 template <class VertexProp, class EdgeProp> 
 Graph<VertexProp, EdgeProp>::Graph(int shardID_, char *uniqueIDsList, char *pathToCsrIndPtr, char *pathToCsrIndices, char *pathToVertexData, int coreCount, int haloCount){
@@ -13,12 +15,12 @@ Graph<VertexProp, EdgeProp>::Graph(int shardID_, char *uniqueIDsList, char *path
         nodeLocalIDs.push_back(i);
     }
     
-    string line;
+    std::string line;
 
     std::ifstream uniqueIDsFile(uniqueIDsList);
     if(uniqueIDsFile.is_open()){
         while(getline(uniqueIDsFile, line)){
-            int num = std::atoi(line);
+            int num = std::stoi(line);
             nodeGlobalIDs.push_back(num);
         }
         uniqueIDsFile.close();
@@ -30,7 +32,7 @@ Graph<VertexProp, EdgeProp>::Graph(int shardID_, char *uniqueIDsList, char *path
     std::ifstream indPtrFile(pathToCsrIndPtr);
     if(indPtrFile.is_open()){
         while(getline(indPtrFile, line)){
-            int num = std::atoi(line);
+            int num = std::stoi(line);
             indptr.push_back(num);
         }
         indPtrFile.close();
@@ -43,7 +45,7 @@ Graph<VertexProp, EdgeProp>::Graph(int shardID_, char *uniqueIDsList, char *path
     std::ifstream indicesFile(pathToCsrIndices);
     if(indicesFile.is_open()){
         while(getline(indicesFile, line)){
-            int num = std::atoi(line);
+            int num = std::stoi(line);
             indices.push_back(num);
             numEdges ++;            // each index means one edge
         }
@@ -58,7 +60,7 @@ Graph<VertexProp, EdgeProp>::Graph(int shardID_, char *uniqueIDsList, char *path
         for(int i = 0; i < numCoreNodes; i++){
             std::vector<float> vertexData;
             for(int j = 0; j < SIZE; j++){
-                vertexData.push_back(std::atoi(file));
+                vertexData.push_back(std::stoi(file));
             }
             int startIndex = indptr[i];
             int endIndex = indptr[i+1];
@@ -83,7 +85,7 @@ template <class VertexProp, class EdgeProp>
 VertexType Graph<VertexProp, EdgeProp>::findVertex(VertexType globalVertexID){
     auto it = std::find (nodeGlobalIDs.begin(), nodeGlobalIDs.end(), globalVertexID);
     VertexType globalIndex = neighborVertices_.push_back(it - nodeGlobalIDs.begin());
-    return localVertexID[globalIndex];
+    return vertexProps[globalIndex];
 }  
 
 
@@ -112,5 +114,29 @@ bool Graph<VertexProp, EdgeProp>::addBatchVertexLocking(std::vector<VertexType> 
     for(auto it = localVertexIDs.begin(); it != localVertexIDs.end(); ++it){
         vertexProps[*it].setLocking();
     }
+}
+
+template<class VertexProp, class EdgeProp>
+std::tuple<std::vector<VertexType>, std::map<int, std::vector<VertexType>>>
+Graph<VertexProp, EdgeProp>::sampleSingleNeighbor(const std::vector<VertexType>& localVertexIDs) {
+    std::vector<VertexType> sampledVertices;
+    std::map<int, std::vector<VertexType>> shardIndexMap;
+
+    // TODO: fine grain parallelization
+    for (int i=0; i<localVertexIDs.size(); i++) {
+        auto prop = vertexProps[localVertexIDs[i]];
+        auto rand = uniform_randint((int)prop.neighborVertices.size());
+
+        VertexType neighborID = prop.neighborVertices[rand];
+        sampledVertices.push_back(neighborID);
+
+        auto neighborShardID = prop.neighborVerticesShardIDs[rand];
+        if (shardIndexMap.find(neighborShardID) == shardIndexMap.end()) {
+            shardIndexMap[neighborShardID] = std::vector<VertexType>();
+        }
+        shardIndexMap[neighborShardID].push_back(i);
+    }
+
+    return {sampledVertices, shardIndexMap};
 }
 

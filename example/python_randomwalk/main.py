@@ -19,7 +19,6 @@ NUM_WALKS = 15
 
 WORKER_NAME = 'worker{}'
 PROCESSED_DIR = osp.join(os.environ.get('DATA_DIR'), 'ogb', 'ogbn_products', 'processed')
-THROUGHPUT = 'work'
 
 
 class Walker:

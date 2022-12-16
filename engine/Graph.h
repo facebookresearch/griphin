@@ -7,6 +7,7 @@
 #include <ctime>
 #include <cstdlib>
 #include <stdint.h>
+#include <map>
 #include "EdgeProp.h"
 #include "VertexProp.h"
 
@@ -56,6 +57,10 @@ template <class VertexProp, class EdgeProp> class Graph{
         bool deleteVertex(VertexType localVertexID);
         bool deleteEdge(VertexType localVertexID1, VertexType localVertexID2);
         bool deleteEdge(EdgeType localEdgeID);
-}
+
+        // Sampling
+        std::tuple<std::vector<VertexType>, std::map<int, std::vector<VertexType>>>
+        sampleSingleNeighbor(const std::vector<VertexType>& localVertexIDs);    // return {localIDs, shardIndexMap}
+};
 
 #endif

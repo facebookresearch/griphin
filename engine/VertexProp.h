@@ -3,12 +3,14 @@
 
 #include <iostream>
 #include <string>
+#include <vector>
 
 typedef int VertexType;    
 typedef int EdgeType;    
 #define SIZE 200
 
 class VertexProp{
+
     public:
         VertexProp(VertexType id, std::vector<float> vertexData_, std::vector<int> neighborVertices_);
         VertexType vertexID;
@@ -16,9 +18,14 @@ class VertexProp{
         std::vector<float> vertexData;
         std::vector<VertexType> neighborVertices;
         std::vector<EdgeType> neighborEdges;
-        void setVertexProp(std::vector<float> vertexData, std::vector<VertexType> neighborVertices, std::vector<EdgeType> neighborEdges=NULL);
+
+        std::vector<int> neighborVerticesShardIDs;
+
+        void setVertexProp(std::vector<float> vertexData, std::vector<VertexType> neighborVertices,
+                           std::vector<EdgeType> neighborEdges);
         bool getLocking();
-        bool setLocking(bool b=True);
+        bool setLocking(bool b=true);
+
 };
 
 

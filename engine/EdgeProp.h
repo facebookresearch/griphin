@@ -4,7 +4,8 @@
 #include <iostream>
 #include <string>
 #include <ctime>
-#include <stdint.h>
+#include <cstdint>
+#include <vector>
 
 typedef int EdgeType;   
 typedef int VertexType;   
