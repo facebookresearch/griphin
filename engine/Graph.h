@@ -28,7 +28,7 @@ template <class VertexProp, class EdgeProp> class Graph{
         EdgeType numEdges;
 
         std::vector<VertexType> nodeIDs;
-        std::vector<VertexType> haloNodeShards;
+        std::vector<int> haloNodeShards;
 
         //std::vector<VertexType> nodeGlobalIDs;      // increasing order
         
@@ -41,8 +41,9 @@ template <class VertexProp, class EdgeProp> class Graph{
         ~Graph();
         // Query
         int getNumOfVertices();
+        int getNumOfCoreVertices();
         int getNumOfHaloVertices();
-        int findVertex(VertexType vertexID);          // returns local id in the current shard based on given global id 
+        VertexProp findVertex(VertexType vertexID);          // returns local id in the current shard based on given global id 
         
         bool findVertexLocking(VertexType localVertexID);          // i did not understand what are the locks used for but i am assuming this function returns true if the given node is locked
         VertexProp findVertexProp(VertexType localVertexID);       // returns the vertex properties of given local vertex ID
@@ -63,6 +64,8 @@ template <class VertexProp, class EdgeProp> class Graph{
         bool deleteVertex(VertexType localVertexID);
         bool deleteEdge(VertexType localVertexID1, VertexType localVertexID2);
         bool deleteEdge(EdgeType localEdgeID);
+
+        void readFile(char *fileName, std::vector<VertexType> *vec, int *counter);      // helper function 
 };
 
 #endif

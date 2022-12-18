@@ -2,6 +2,23 @@
 #include "Graph.h"
 
 template <class VertexProp, class EdgeProp> 
+void Graph<VertexProp, EdgeProp>::readFile(char *fileName, std::vector<VertexType> *vec, int *counter){
+    std::string line;
+
+    std::ifstream file(fileName);
+    if(file.is_open()){
+        while(getline(file, line)){
+            (*counter) ++;
+            (*vec).push_back(std::atoi(line.c_str()));
+        }
+        file.close();
+    }   
+    else{
+        std::cout << "Unable to open the file!" << std::endl; 
+    }
+}
+
+template <class VertexProp, class EdgeProp> 
 Graph<VertexProp, EdgeProp>::Graph(int shardID_, char *idsList, char *haloShardsList,  char *pathToCooRow, char *pathToCooColumn){  // takes shards as the argument
     shardID = shardID_;
 
@@ -9,58 +26,22 @@ Graph<VertexProp, EdgeProp>::Graph(int shardID_, char *idsList, char *haloShards
     numHaloNodes = 0;
     numNodes = 0;
 
-    
     std::string line;
 
-    std::ifstream idsFile1(idsList);
-    if(idsFile1.is_open()){
-        while(getline(idsFile1, line)){
-            numNodes ++;
-        }
-        idsFile1.close();
-    }   
-    else{
-        std::cout << "Unable to open unique IDs file" << std::endl; 
-    }
-
-    std::ifstream shardsFile(haloShardsList);
-    if(shardsFile.is_open()){
-        while(getline(shardsFile, line)){
-            numHaloNodes ++;
-            int num = std::atoi(line.c_str());
-            haloNodeShards.push_back(num);
-        }
-        shardsFile.close();
-    }   
-    else{
-        std::cout << "Unable to open shards file" << std::endl; 
-    }
+    /*
+       idsList contains the numbers with the following format: 
+       for shard 0 -> from 0 to |core vertices in current shard| - 1 and then halo vertices with their original ids in their original shards
+       for shard 0 -> from |core vertices in prev. shard| - 1 to |core vertices in current shard| and then halo vertices with their original ids in their original shards
+       we initially planned to start from 0 in each shard. However, it required us to keep <shard_id, vertex_id> pair for edges as there might be vertices with the same vertex_id 
+       however, we can easily change it as current format keeps all the necessary information.
+    */
+    readFile(idsList, &nodeIDs, &numNodes);
+    
+    // reads the shard ids of the vertices.
+    // i didn't store the shard id of the core ones as shardID variable holds it.
+    readFile(haloShardsList, &haloNodeShards, &numHaloNodes);
 
     numCoreNodes = numNodes - numHaloNodes; 
-
-    std::ifstream idsFile2(idsList);
-    if(idsFile2.is_open()){
-        while(getline(idsFile2, line)){
-            int num = std::atoi(line.c_str());
-            nodeIDs.push_back(num);
-        }
-        idsFile2.close();
-    }   
-    else{
-        std::cout << "Unable to open unique IDs file" << std::endl; 
-    }
-
-    std::ifstream uniqueIDsFile(idsList);
-    if(uniqueIDsFile.is_open()){
-        while(getline(uniqueIDsFile, line)){
-            int num = std::atoi(line.c_str());
-            nodeIDs.push_back(num);
-        }
-        uniqueIDsFile.close();
-    }   
-    else{
-        std::cout << "Unable to open unique IDs file" << std::endl; 
-    }
 
     for(int i=0; i < nodeIDs.size(); i++){
         if(i < numCoreNodes)
@@ -69,42 +50,29 @@ Graph<VertexProp, EdgeProp>::Graph(int shardID_, char *idsList, char *haloShards
             vertexProps.push_back(VertexProp(nodeIDs[i], haloNodeShards[i-numCoreNodes]));
     }
 
+    // read the source nodes file
+    int dummy = 0;
+    readFile(pathToCooRow, &cooRow, &dummy);
 
-    std::ifstream cooRowFile(pathToCooRow);
-    if(cooRowFile.is_open()){
-        while(getline(cooRowFile, line)){
-            int num = std::atoi(line.c_str());
-            cooRow.push_back(num);
-        }
-        cooRowFile.close();
-    }   
-    else{
-        std::cout << "Unable to open indptr file" << std::endl; 
-    }
-
+    // read the dest nodes file    
+    readFile(pathToCooColumn, &cooCol, &numEdges);
     
-    std::ifstream cooColFile(pathToCooColumn);
-    if(cooColFile.is_open()){
-        while(getline(cooColFile, line)){
-            int num = std::atoi(line.c_str());
-            cooCol.push_back(num);
-            numEdges ++;            // each index means one edge
-        }
-        cooColFile.close();
-    }   
-    else{
-        std::cout << "Unable to open indices file" << std::endl; 
-    }
-
     for(int i = 0; i < numEdges; i++){
         for(int j = 0; j < numNodes; j++){
             if(cooRow[i] == nodeIDs[j]){
-                vertexProps[j].addNeighbor(cooCol[i]);
+                if(cooCol[i] >= nodeIDs[0] && cooCol[i] <= nodeIDs[numCoreNodes-1]){
+                    vertexProps[j].addNeighbor(cooCol[i], shardID);
+                }
+                else{
+                    std::vector<int>::iterator it; 
+                    it = std::find(nodeIDs.begin(), nodeIDs.end(), cooCol[i]);
+                    int index = it - nodeIDs.begin() - numCoreNodes;
+                    vertexProps[j].addNeighbor(cooCol[i], haloNodeShards[index]);
+                }
             }
         }
     }
 
-    
 /*
     std::ifstream vertexDataFile(pathToVertexData);         // data format in txt file is 2d array
     if(vertexDataFile.is_open()){
@@ -134,30 +102,17 @@ Graph<VertexProp, EdgeProp>::Graph(int shardID_, char *idsList, char *haloShards
 }
 
 
-
 template <class VertexProp, class EdgeProp> 
-int Graph<VertexProp, EdgeProp>::findVertex(int vertexID){
+VertexProp Graph<VertexProp, EdgeProp>::findVertex(int vertexID){
     std::vector<int>::iterator it; 
     it = std::find(nodeIDs.begin(), nodeIDs.end(), vertexID);
-    if(it == nodeIDs.end()){
-        printf("ID %d is not in this shard.\n", vertexID);
-        return -1;
-    }
-    printf("ID %d is found.\n", vertexID);
     int index = it - nodeIDs.begin();
-    return vertexID;
+    return vertexProps[index];
 } 
-
 
 
 template <class VertexProp, class EdgeProp> 
 Graph<VertexProp, EdgeProp>::~Graph(){
-}
-
-template <class VertexProp, class EdgeProp> 
-int Graph<VertexProp, EdgeProp>::getNumOfHaloVertices(){
-    printf("Num of Halo Nodes: %d\n", numHaloNodes);
-    return numHaloNodes;
 }
 
 template <class VertexProp, class EdgeProp> 
@@ -167,9 +122,20 @@ int Graph<VertexProp, EdgeProp>::getNumOfVertices(){
 }
 
 template <class VertexProp, class EdgeProp> 
+int Graph<VertexProp, EdgeProp>::getNumOfCoreVertices(){
+    printf("Num of Core Nodes: %d\n", numCoreNodes);
+    return numCoreNodes;
+}
+
+template <class VertexProp, class EdgeProp> 
+int Graph<VertexProp, EdgeProp>::getNumOfHaloVertices(){
+    printf("Num of Halo Nodes: %d\n", numHaloNodes);
+    return numHaloNodes;
+}
+
+template <class VertexProp, class EdgeProp> 
 bool Graph<VertexProp, EdgeProp>::findVertexLocking(VertexType localVertexID){
-    vertexProps[localVertexID].getLocking();
-    return true;
+    return vertexProps[localVertexID].getLocking();
 }
 
 template <class VertexProp, class EdgeProp> 

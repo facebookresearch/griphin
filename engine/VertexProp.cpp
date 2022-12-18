@@ -1,8 +1,8 @@
 #include <iostream>
 #include "VertexProp.h"
 
-VertexProp::VertexProp(int nodeId, int shard_) {
-    vertexID = nodeId;
+VertexProp::VertexProp(int vertexId_, int shard_) {
+    vertexID = vertexId_;
     shard = shard_;
     neighborCount = 0;
     isLocked = false;
@@ -24,18 +24,28 @@ VertexType VertexProp::getShard(){
     return shard;
 }
 
-bool VertexProp::addNeighbor(VertexType neighborId){
+bool VertexProp::addNeighbor(VertexType neighborId, int neighborShardId){
     neighborVertices->push_back(neighborId);
+    neighborVerticeShards->push_back(neighborShardId);
+    neighborCount ++;
     return true;
 }
 
 void VertexProp::getNeighbors(){
+    printf("Neighbors of node %d: ", vertexID);
     for(int i = 0; i < neighborCount; i++){
         printf("%d ", (*neighborVertices)[i]);
     }
     printf("\n");
 }
 
+void VertexProp::getShardsOfNeighbors(){
+    printf("Shards of neighbors of node %d: ", vertexID);
+    for(int i = 0; i < neighborCount; i++){
+        printf("%d ", (*neighborVerticeShards)[i]);
+    }
+    printf("\n\n");
+}
 
 
 bool VertexProp::getLocking(){

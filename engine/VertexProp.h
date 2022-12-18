@@ -19,12 +19,14 @@ class VertexProp{
         bool isLocked;
         std::vector<float> vertexData;
         std::vector<VertexType> *neighborVertices = new std::vector<VertexType>;
+        std::vector<int> *neighborVerticeShards = new std::vector<int>;
         std::vector<VertexType> shardOfneighborVertices;
         std::vector<EdgeType> neighborEdges;
         VertexType getNodeId();
         VertexType getShard();
-        bool addNeighbor(VertexType neighborId);
+        bool addNeighbor(VertexType neighborId, int neighborShardId);
         void getNeighbors();
+        void getShardsOfNeighbors();
         void setVertexProp(std::vector<float> vertexData, std::vector<VertexType> neighborVertices, std::vector<EdgeType> neighborEdges);
         bool getLocking();
         bool setLocking(bool b);
