@@ -2,30 +2,34 @@
 #define VERTEXPROP_H
 
 #include <iostream>
-#include <string>
 #include <vector>
+#include <string>
 
 typedef int VertexType;    
 typedef int EdgeType;    
-#define SIZE 200
+#define PROP_SIZE 200
 
 class VertexProp{
-
     public:
-        VertexProp(VertexType id, std::vector<float> vertexData_, std::vector<int> neighborVertices_);
+        VertexProp(int localId, int globalId);
+        //VertexProp(VertexType id, std::vector<float> vertexData_, std::vector<int> neighborVertices_);
         VertexType vertexID;
+        int shard;
+        int neighborCount;
         bool isLocked;
         std::vector<float> vertexData;
-        std::vector<VertexType> neighborVertices;
+        std::vector<VertexType> *neighborVertices = new std::vector<VertexType>;
+        std::vector<int> *neighborVerticeShards = new std::vector<int>;
+        std::vector<VertexType> shardOfneighborVertices;
         std::vector<EdgeType> neighborEdges;
-
-        std::vector<int> neighborVerticesShardIDs;
-
-        void setVertexProp(std::vector<float> vertexData, std::vector<VertexType> neighborVertices,
-                           std::vector<EdgeType> neighborEdges);
+        VertexType getNodeId();
+        VertexType getShard();
+        bool addNeighbor(VertexType neighborId, int neighborShardId);
+        void getNeighbors();
+        void getShardsOfNeighbors();
+        void setVertexProp(std::vector<float> vertexData, std::vector<VertexType> neighborVertices, std::vector<EdgeType> neighborEdges);
         bool getLocking();
-        bool setLocking(bool b=true);
-
+        bool setLocking(bool b);
 };
 
 

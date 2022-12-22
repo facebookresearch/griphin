@@ -5,7 +5,8 @@
 #include <string>
 #include <fstream> 
 #include <ctime>
-#include <cstdlib>
+#include <vector>
+#include <algorithm>
 #include <stdint.h>
 #include <map>
 #include "EdgeProp.h"
@@ -20,24 +21,31 @@ template <class VertexProp, class EdgeProp> class Graph{
         int shardID;
 
         std::vector<VertexProp> vertexProps;
-        std::vector<EdgeProp> edgeProps;
+        //std::vector<EdgeProp> edgeProps;
 
         VertexType numNodes;
         VertexType numCoreNodes;
         VertexType numHaloNodes;
         EdgeType numEdges;
 
-        std::vector<VertexType> nodeLocalIDs;
-        std::vector<VertexType> nodeGlobalIDs;      // increasing order
+        std::vector<VertexType> nodeIDs;
+        std::vector<int> haloNodeShards;
+
+        //std::vector<VertexType> nodeGlobalIDs;      // increasing order
         
-        std::vector<VertexType> indptr;
-        std::vector<VertexType> indices;
+        std::vector<VertexType> cooRow;
+        std::vector<VertexType> cooCol;
 
     public:
-        Graph(int shardID_, char *uniqueIDsList, char *pathToCsrIndPtr, char *pathToCsrIndices, char *pathToVertexData, int coreCount, int haloCount); // takes shards as the argument
-
+        Graph(int shardID_, char *idsList, char *haloShardsList, char *pathToCooRow, char *pathToCooColumn);  // takes shards as the argument
+        //Graph(int shardID_,  int coreCount, int haloCount, char *uniqueIDsList, char *pathToCooRow, char *pathToCooColumn, char *pathToVertexData=NULL);  // takes shards as the argument
+        ~Graph();
         // Query
-        VertexType findVertex(VertexType globalVertexID);          // returns local id in the current shard based on given global id 
+        int getNumOfVertices();
+        int getNumOfCoreVertices();
+        int getNumOfHaloVertices();
+        VertexProp findVertex(VertexType vertexID);          // returns local id in the current shard based on given global id
+
         bool findVertexLocking(VertexType localVertexID);          // i did not understand what are the locks used for but i am assuming this function returns true if the given node is locked
         VertexProp findVertexProp(VertexType localVertexID);       // returns the vertex properties of given local vertex ID
         //VertexProp findEdgeProp(VertexType localEdgeID);           // returns the edge properties of the given edge ID
@@ -57,6 +65,8 @@ template <class VertexProp, class EdgeProp> class Graph{
         bool deleteVertex(VertexType localVertexID);
         bool deleteEdge(VertexType localVertexID1, VertexType localVertexID2);
         bool deleteEdge(EdgeType localEdgeID);
+
+        void readFile(char *fileName, std::vector<VertexType> *vec, int *counter);      // helper function
 
         // Sampling
         std::tuple<std::vector<VertexType>, std::map<int, std::vector<VertexType>>>
