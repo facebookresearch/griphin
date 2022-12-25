@@ -1,9 +1,9 @@
 #include <iostream>
 #include "VertexProp.h"
 
-VertexProp::VertexProp(int vertexId_, int shard_) {
-    vertexID = vertexId_;
-    shard = shard_;
+VertexProp::VertexProp(int vertexID_, int shardID_) {
+    vertexID = vertexID_;
+    shardID = shardID_;
     neighborCount = 0;
     isLocked = false;
 }
@@ -20,8 +20,8 @@ VertexType VertexProp::getNodeId(){
     return vertexID;
 }
 
-VertexType VertexProp::getShard(){
-    return shard;
+int VertexProp::getShard(){
+    return shardID;
 }
 
 bool VertexProp::addNeighbor(VertexType neighborId, int neighborShardId){

@@ -19,12 +19,15 @@ void Graph<VertexProp, EdgeProp>::readFile(char *fileName, std::vector<VertexTyp
 }
 
 template <class VertexProp, class EdgeProp> 
-Graph<VertexProp, EdgeProp>::Graph(int shardID_, char *idsList, char *haloShardsList,  char *pathToCooRow, char *pathToCooColumn){  // takes shards as the argument
+Graph<VertexProp, EdgeProp>::Graph(int shardID_, char *idsList, char *haloShardsList,  char *pathToCooRow, char *pathToCooColumn, char *partitionBookFile){  // takes shards as the argument
     shardID = shardID_;
 
     numCoreNodes = 0;
     numHaloNodes = 0;
     numNodes = 0;
+    numEdges = 0;
+
+    int dummy = 0;
 
     std::string line;
 
@@ -36,6 +39,8 @@ Graph<VertexProp, EdgeProp>::Graph(int shardID_, char *idsList, char *haloShards
        however, we can easily change it as current format keeps all the necessary information.
     */
     readFile(idsList, &nodeIDs, &numNodes);
+
+    readFile(partitionBookFile, &partitionBook, &dummy);
     
     // reads the shard ids of the vertices.
     // i didn't store the shard id of the core ones as shardID variable holds it.
@@ -43,31 +48,47 @@ Graph<VertexProp, EdgeProp>::Graph(int shardID_, char *idsList, char *haloShards
 
     numCoreNodes = numNodes - numHaloNodes; 
 
+    int offset = partitionBook[shardID];
+
+    for(int i = numCoreNodes; i < numNodes; i++){
+        int tempShard = haloNodeShards[i-numCoreNodes];
+        int tempOffset = partitionBook[tempShard];
+        haloNodeRemoteLocalID.push_back(nodeIDs[i] - tempOffset);
+    }
+
+    for(int i=0; i < numCoreNodes; i++){
+        vertexProps.push_back(VertexProp(i, shardID));
+    }
+
+    /*
     for(int i=0; i < nodeIDs.size(); i++){
         if(i < numCoreNodes)
             vertexProps.push_back(VertexProp(nodeIDs[i], shardID));
         else    
             vertexProps.push_back(VertexProp(nodeIDs[i], haloNodeShards[i-numCoreNodes]));
     }
+    */
 
     // read the source nodes file
-    int dummy = 0;
     readFile(pathToCooRow, &cooRow, &dummy);
 
     // read the dest nodes file    
     readFile(pathToCooColumn, &cooCol, &numEdges);
-    
+
     for(int i = 0; i < numEdges; i++){
-        for(int j = 0; j < numNodes; j++){
+        for(int j = 0; j < numCoreNodes; j++){
             if(cooRow[i] == nodeIDs[j]){
                 if(cooCol[i] >= nodeIDs[0] && cooCol[i] <= nodeIDs[numCoreNodes-1]){
-                    vertexProps[j].addNeighbor(cooCol[i], shardID);
+                    //printf("if 1\n");
+                    vertexProps[j].addNeighbor(cooCol[i] - offset, shardID);
                 }
                 else{
                     std::vector<int>::iterator it; 
                     it = std::find(nodeIDs.begin(), nodeIDs.end(), cooCol[i]);
                     int index = it - nodeIDs.begin() - numCoreNodes;
-                    vertexProps[j].addNeighbor(cooCol[i], haloNodeShards[index]);
+                    int tempShard = haloNodeShards[index];
+                    int tempOffset = partitionBook[tempShard];
+                    vertexProps[j].addNeighbor(cooCol[i] - tempOffset, tempShard);
                 }
             }
         }
@@ -104,10 +125,11 @@ Graph<VertexProp, EdgeProp>::Graph(int shardID_, char *idsList, char *haloShards
 
 template <class VertexProp, class EdgeProp> 
 VertexProp Graph<VertexProp, EdgeProp>::findVertex(int vertexID){
-    std::vector<int>::iterator it; 
-    it = std::find(nodeIDs.begin(), nodeIDs.end(), vertexID);
-    int index = it - nodeIDs.begin();
-    return vertexProps[index];
+    // std::vector<int>::iterator it; 
+    // it = std::find(nodeIDs.begin(), nodeIDs.end(), vertexID);
+    // int index = it - nodeIDs.begin();
+    // printf("index %d\n", index);
+    return vertexProps[vertexID];
 } 
 
 

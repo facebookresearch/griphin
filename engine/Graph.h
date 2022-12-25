@@ -28,6 +28,7 @@ template <class VertexProp, class EdgeProp> class Graph{
         EdgeType numEdges;
 
         std::vector<VertexType> nodeIDs;
+        std::vector<VertexType> haloNodeRemoteLocalID;
         std::vector<int> haloNodeShards;
 
         //std::vector<VertexType> nodeGlobalIDs;      // increasing order
@@ -35,8 +36,11 @@ template <class VertexProp, class EdgeProp> class Graph{
         std::vector<VertexType> cooRow;
         std::vector<VertexType> cooCol;
 
+        std::vector<VertexType> partitionBook;
+
+
     public:
-        Graph(int shardID_, char *idsList, char *haloShardsList, char *pathToCooRow, char *pathToCooColumn);  // takes shards as the argument
+        Graph(int shardID_, char *idsList, char *haloShardsList, char *pathToCooRow, char *pathToCooColumn, char *partitionBookFile);  // takes shards as the argument
         //Graph(int shardID_,  int coreCount, int haloCount, char *uniqueIDsList, char *pathToCooRow, char *pathToCooColumn, char *pathToVertexData=NULL);  // takes shards as the argument
         ~Graph();
         // Query
