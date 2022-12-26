@@ -3,12 +3,19 @@ project(engine)
 
 set(CMAKE_CXX_STANDARD 14)
 
-include_directories(.)
-
 add_executable(engine
         EdgeProp.cpp
         EdgeProp.h
         Graph.cpp
         Graph.h
         VertexProp.cpp
-        VertexProp.h)
+        VertexProp.h
+        main.cpp)
+
+
+set(CMAKE_PREFIX_PATH /Users/synapse/opt/anaconda3/envs/pytorch-graph/lib/python3.9/site-packages/torch/share/cmake)
+find_package(Torch REQUIRED)
+
+include_directories(.)
+
+target_link_libraries(engine "${TORCH_LIBRARIES}")

@@ -3,23 +3,6 @@
 #include "Graph.h"
 #include "utils.h"
 
-template <class VertexProp, class EdgeProp> 
-void Graph<VertexProp, EdgeProp>::readFile(char *fileName, std::vector<VertexType> *vec, int *counter){
-    std::string line;
-
-    std::ifstream file(fileName);
-    if(file.is_open()){
-        while(getline(file, line)){
-            (*counter) ++;
-            (*vec).push_back(std::atoi(line.c_str()));
-        }
-        file.close();
-    }   
-    else{
-        std::cout << "Unable to open the file!" << std::endl;
-    }
-}
-
 template <class VertexProp, class EdgeProp>
 Graph<VertexProp, EdgeProp>::Graph(int shardID_, char *idsList, char *haloShardsList,  char *pathToCooRow, char *pathToCooColumn){  // takes shards as the argument
     shardID = shardID_;
@@ -103,7 +86,6 @@ Graph<VertexProp, EdgeProp>::Graph(int shardID_, char *idsList, char *haloShards
 */
 }
 
-
 template <class VertexProp, class EdgeProp> 
 VertexProp Graph<VertexProp, EdgeProp>::findVertex(int vertexID){
     std::vector<int>::iterator it;
@@ -111,7 +93,6 @@ VertexProp Graph<VertexProp, EdgeProp>::findVertex(int vertexID){
     int index = it - nodeIDs.begin();
     return vertexProps[index];
 }
-
 
 template <class VertexProp, class EdgeProp>
 Graph<VertexProp, EdgeProp>::~Graph(){
@@ -145,7 +126,7 @@ VertexProp Graph<VertexProp, EdgeProp>::findVertexProp(VertexType localVertexID)
     return vertexProps[localVertexID];
 }
 
-template <class VertexProp, class EdgeProp> 
+template <class VertexProp, class EdgeProp>
 bool Graph<VertexProp, EdgeProp>::addVertex(VertexProp vertex){
     return true; // to be implemented
 }
@@ -165,24 +146,35 @@ bool Graph<VertexProp, EdgeProp>::addBatchVertexLocking(std::vector<VertexType> 
 }
 
 template<class VertexProp, class EdgeProp>
-std::tuple<std::vector<VertexType>, std::map<int, std::vector<VertexType>>>
-Graph<VertexProp, EdgeProp>::sampleSingleNeighbor(const std::vector<VertexType>& localVertexIDs) {
-    std::vector<VertexType> sampledVertices;
-    std::map<int, std::vector<VertexType>> shardIndexMap;
+std::tuple<torch::Tensor, std::map<int, torch::Tensor>>
+Graph<VertexProp, EdgeProp>::sampleSingleNeighbor(const torch::Tensor& srcVertexIDs_) {
+    int64_t len = srcVertexIDs_.numel();
+    torch::Tensor srcVertexIDs = srcVertexIDs_.contiguous();
+    const VertexType* srcVertexPtr = srcVertexIDs.data_ptr<VertexType>();
+
+    auto* sampledVertices_ = new VertexType[len];  // to avoid copy, we need to allocate memory for sampled Vertices
+    std::map<int, std::vector<VertexType>*> shardIndexMap_;
 
     // TODO: fine grain parallelization
-    for (int i=0; i<localVertexIDs.size(); i++) {
-        auto prop = vertexProps[localVertexIDs[i]];
-        auto rand = uniform_randint((int)prop.neighborVertices.size());
+    for (int64_t i=0; i < len; i++) {
+        VertexProp prop = vertexProps[srcVertexPtr[i]];
+        auto rand = uniform_randint((int)prop.neighborVertices->size());
 
-        VertexType neighborID = prop.neighborVertices[rand];
-        sampledVertices.push_back(neighborID);
+        VertexType neighborID = (*prop.neighborVertices)[rand];
+        sampledVertices_[i] = neighborID;
 
-        auto neighborShardID = prop.neighborVerticesShardIDs[rand];
-        if (shardIndexMap.find(neighborShardID) == shardIndexMap.end()) {
-            shardIndexMap[neighborShardID] = std::vector<VertexType>();
+        auto neighborShardID = (*prop.neighborVerticeShards)[rand];
+        if (shardIndexMap_.find(neighborShardID) == shardIndexMap_.end()) {
+            shardIndexMap_[neighborShardID] = new std::vector<VertexType>();  // allocate memory
         }
-        shardIndexMap[neighborShardID].push_back(i);
+        shardIndexMap_[neighborShardID]->push_back(i);
+    }
+
+    auto opts = srcVertexIDs_.options();
+    torch::Tensor sampledVertices = torch::from_blob(sampledVertices_, {len}, opts);  // from_blob() does not make a copy
+    std::map<int, torch::Tensor> shardIndexMap;
+    for (auto & it : shardIndexMap_) {
+        shardIndexMap[it.first] = torch::from_blob(it.second->data(), {(int64_t)it.second->size()}, opts);
     }
 
     return {sampledVertices, shardIndexMap};

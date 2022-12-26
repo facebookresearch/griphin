@@ -1,25 +1,38 @@
 from collections import OrderedDict
 
 import torch
+import graph_engine
+
+VERTEX_ID_TYPE = torch.int32
+
+
+def init_graph(path, shard_id):
+    ids_file = 'p{}_ids.txt'
+    shards_file = 'p{}_halo_shards.txt'
+    rows_file = 'p{}_edge_sources.txt'
+    cols_file = 'p{}_edge_dests.txt'
+
+    def _dir(filename):
+        return path + filename.format(shard_id)
+
+    return graph_engine.Graph(shard_id, _dir(ids_file), _dir(shards_file), _dir(rows_file), _dir(cols_file))
 
 
 class GraphShard:
     """
     Front end wrapper for Graph.h
     """
-    def __init__(self, shard_id):
+    def __init__(self, path, shard_id):
         self.id = shard_id
-        self.g = None  # TODO: read from C layer
+        self.g = init_graph(path, shard_id)
 
     @property
     def cluster_size(self):
-        # return self.g.batch_size
-        return 613761  # TODO: ogbn_products[0]
+        return self.g.num_core_nodes()
 
     @property
     def cluster_ptr(self):
-        # return self.g.cluster_ptr
-        return torch.tensor([0, 613761, 1236365, 1838296, 2449029])  # TODO: ogbn_products
+        return self.g.cluster_ptr()
 
     def to_global(self, indices, shard_id=None):
         if shard_id is None:
@@ -27,5 +40,6 @@ class GraphShard:
         return indices + self.cluster_ptr[shard_id]
 
     def step(self, src_nodes) -> (torch.Tensor, OrderedDict):
-        return self.g.sampleSingleNeighbor(src_nodes)
+        nid, shard_dict = self.g.sample_single_neighbor(src_nodes)
+        return nid, shard_dict
 

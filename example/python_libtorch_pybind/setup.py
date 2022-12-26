@@ -46,7 +46,7 @@ from torch.utils import cpp_extension
 setup(name='python_example',
       ext_modules=[cpp_extension.CppExtension('python_example',
                                               ['example.cpp'],
-                                              extra_compile_args=['-fopenmp'],
+                                              # extra_compile_args=['-fopenmp'],
                                               )],
       cmdclass={'build_ext': cpp_extension.BuildExtension})
 

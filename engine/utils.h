@@ -11,8 +11,23 @@ inline int uniform_randint(int low, int high) {
 }
 
 inline int uniform_randint(int high) {
-    return uniform_randint(0, high)
+    return uniform_randint(0, high);
 }
 
+inline void readFile(char *fileName, std::vector<VertexType> *vec, int *counter){
+    std::string line;
+
+    std::ifstream file(fileName);
+    if(file.is_open()){
+        while(getline(file, line)){
+            (*counter) ++;
+            (*vec).push_back(std::atoi(line.c_str()));
+        }
+        file.close();
+    }
+    else{
+        std::cout << "Unable to open the file!" << std::endl;
+    }
+}
 
 #endif //ENGINE_UTILS_H

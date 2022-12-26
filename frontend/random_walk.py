@@ -3,7 +3,7 @@ from collections import OrderedDict
 import torch
 from torch.distributed import rpc
 
-from frontend.graph import GraphShard
+from frontend.graph import GraphShard, VERTEX_ID_TYPE
 
 
 def random_walk(walker_rrefs, num_machines, num_roots, walk_length):
@@ -11,9 +11,9 @@ def random_walk(walker_rrefs, num_machines, num_roots, walk_length):
     walker: GraphShard = walker_rrefs[rank].to_here()
 
     batch_size = walker.cluster_size
-    root_nodes = torch.randperm(batch_size)[:num_roots]
+    root_nodes = torch.randperm(batch_size, dtype=VERTEX_ID_TYPE)[:num_roots]
 
-    walks_summary = torch.full((num_roots, walk_length + 1), -1)
+    walks_summary = torch.full((num_roots, walk_length + 1), -1, dtype=root_nodes.dtype)
     walks_summary[:, 0] = walker.to_global(root_nodes)
 
     u = root_nodes  # current layer nodes u

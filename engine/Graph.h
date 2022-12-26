@@ -9,10 +9,11 @@
 #include <algorithm>
 #include <stdint.h>
 #include <map>
+#include <torch/extension.h>
 #include "EdgeProp.h"
 #include "VertexProp.h"
 
-typedef int VertexType;    
+typedef int VertexType;
 typedef int EdgeType;
 #define SIZE 100
 
@@ -66,11 +67,8 @@ template <class VertexProp, class EdgeProp> class Graph{
         bool deleteEdge(VertexType localVertexID1, VertexType localVertexID2);
         bool deleteEdge(EdgeType localEdgeID);
 
-        void readFile(char *fileName, std::vector<VertexType> *vec, int *counter);      // helper function
-
         // Sampling
-        std::tuple<std::vector<VertexType>, std::map<int, std::vector<VertexType>>>
-        sampleSingleNeighbor(const std::vector<VertexType>& localVertexIDs);    // return {localIDs, shardIndexMap}
+        std::tuple<torch::Tensor, std::map<int, torch::Tensor>> sampleSingleNeighbor(const torch::Tensor &srcVertexIDs_);  // return {localIDs, shardIndexMap}
 };
 
 #endif

@@ -10,7 +10,7 @@ from torch.distributed.rpc import RRef, remote
 
 NUM_MACHINES = 4
 RUNS = 100
-NUM_DATA = 50000000
+NUM_DATA = 500000
 
 WORKER_NAME = 'worker{}'
 
@@ -21,7 +21,8 @@ class Walker:
         self.data = torch.rand(NUM_DATA, dtype=torch.float32)  # simulates loading large data
 
     def step(self):
-        return self.data
+        return {1: self.data, 2: self.data}
+        # return self.data
 
 
 def random_walk(walker_rrefs):
@@ -43,7 +44,7 @@ def random_walk(walker_rrefs):
 
 def run(rank):
     os.environ['MASTER_ADDR'] = 'localhost'
-    os.environ['MASTER_PORT'] = '29500'
+    os.environ['MASTER_PORT'] = '29501'
     options = rpc.TensorPipeRpcBackendOptions(num_worker_threads=4)
 
     rpc.init_rpc(WORKER_NAME.format(rank), rank=rank, world_size=NUM_MACHINES, rpc_backend_options=options)

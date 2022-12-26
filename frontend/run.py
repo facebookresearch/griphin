@@ -1,16 +1,10 @@
 import os
-import os.path as osp
-
 import time
-from collections import Counter
 
 import torch
 import torch.multiprocessing as mp
 import torch.distributed.rpc as rpc
 from torch.distributed.rpc import RRef, remote
-
-from torch_geometric.utils import mask_to_index
-from pyg_lib.sampler import random_walk as pyg_random_walk
 
 from frontend.graph import GraphShard
 from frontend.random_walk import random_walk
@@ -51,8 +45,8 @@ def run(rank):
             c += fut.wait()
         tok_ = time.time()
 
-        # print(f'Total Package sizes: {c}')
         print(f'Inner Execution time = {tok_ - tik_:.3}s')
+        print(f'Random walk summary:\n {torch.cat(c, dim=0)}')
 
     rpc.shutdown()
 
