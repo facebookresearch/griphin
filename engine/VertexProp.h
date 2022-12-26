@@ -11,10 +11,10 @@ typedef int EdgeType;
 
 class VertexProp{
     public:
-        VertexProp(int localId, int globalId);
+        VertexProp(int vertexID_, int shardID_); 
         //VertexProp(VertexType id, std::vector<float> vertexData_, std::vector<int> neighborVertices_);
         VertexType vertexID;
-        int shard;
+        int shardID;
         int neighborCount;
         bool isLocked;
         std::vector<float> vertexData;
@@ -23,7 +23,7 @@ class VertexProp{
         std::vector<VertexType> shardOfneighborVertices;
         std::vector<EdgeType> neighborEdges;
         VertexType getNodeId();
-        VertexType getShard();
+        int getShard();
         bool addNeighbor(VertexType neighborId, int neighborShardId);
         void getNeighbors();
         void getShardsOfNeighbors();

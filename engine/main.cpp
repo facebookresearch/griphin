@@ -28,10 +28,12 @@ int main(){
     char p3_rows_file[] = "../files/p3_edge_sources.txt";
     char p3_cols_file[] = "../files/p3_edge_dests.txt";
 
-    Graph<VertexProp, EdgeProp> shard0(0, p0_ids_file, p0_shards_file, p0_rows_file, p0_cols_file);
-    Graph<VertexProp, EdgeProp> shard1(1, p1_ids_file, p1_shards_file, p1_rows_file, p1_cols_file);
-    Graph<VertexProp, EdgeProp> shard2(2, p2_ids_file, p2_shards_file, p2_rows_file, p2_cols_file);
-    Graph<VertexProp, EdgeProp> shard3(3, p3_ids_file, p3_shards_file, p3_rows_file, p3_cols_file);
+    char partition_book_file[] = "files/p3_edge_dests.txt";
+
+    Graph<VertexProp, EdgeProp> shard0(0, p0_ids_file, p0_shards_file, p0_rows_file, p0_cols_file, partition_book_file);
+    Graph<VertexProp, EdgeProp> shard1(1, p1_ids_file, p1_shards_file, p1_rows_file, p1_cols_file, partition_book_file);
+    Graph<VertexProp, EdgeProp> shard2(2, p2_ids_file, p2_shards_file, p2_rows_file, p2_cols_file, partition_book_file);
+    Graph<VertexProp, EdgeProp> shard3(3, p3_ids_file, p3_shards_file, p3_rows_file, p3_cols_file, partition_book_file);
 
     float data[] = { 1, 2, 3,4, 5, 6 };
     auto a = shard0.sampleSingleNeighbor(torch::from_blob(data, {6}));
@@ -39,27 +41,27 @@ int main(){
     shard0.getNumOfCoreVertices();
     int x = shard0.getNumOfVertices();
     x = shard0.getNumOfHaloVertices();
-    VertexProp v = shard0.findVertex(0);
+    VertexProp v = shard0.findVertex(10);
     v.getNeighbors();
     v.getShardsOfNeighbors();
 
     x = shard1.getNumOfVertices();
     x = shard1.getNumOfHaloVertices();
-    v = shard1.findVertex(830);
+    v = shard1.findVertex(120);
     v.getNeighbors();
     v.getShardsOfNeighbors();
 
     x = shard2.getNumOfVertices();
     x = shard2.getNumOfHaloVertices();
-    v =shard2.findVertex(1730);
+    v =shard2.findVertex(330);
     v.getNeighbors();
     v.getShardsOfNeighbors();
 
     x = shard3.getNumOfVertices();
     x = shard3.getNumOfHaloVertices();
-    v = shard3.findVertex(2400);
+    v = shard3.findVertex(240);
     v.getNeighbors();
-    v.getShardsOfNeighbors();
+     v.getShardsOfNeighbors();
 
     return 0;
 }
