@@ -3,3 +3,5 @@
 /engine/cmake-build-debug
 /engine/GraphEngine.egg-info/
 /engine/build/
+/example/python_libtorch_pybind/python_example.egg-info/
+/example/python_libtorch_pybind/build/

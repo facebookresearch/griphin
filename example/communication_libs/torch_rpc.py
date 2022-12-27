@@ -21,7 +21,7 @@ class Walker:
         self.data = torch.rand(NUM_DATA, dtype=torch.float32)  # simulates loading large data
 
     def step(self):
-        return {1: self.data, 2: self.data}
+        return {1: self.data, 2: torch.cat([self.data for _ in range(self.id+1)])}
         # return self.data
 
 

@@ -107,6 +107,10 @@ Graph<VertexProp, EdgeProp>::Graph(int shardID_, char *idsList, char *haloShards
 */
 }
 
+template<class VertexProp, class EdgeProp>
+std::vector<VertexType> Graph<VertexProp, EdgeProp>::getPartitionBook() {
+    return partitionBook;
+}
 
 template <class VertexProp, class EdgeProp> 
 VertexProp Graph<VertexProp, EdgeProp>::findVertex(int vertexID){
@@ -176,11 +180,11 @@ Graph<VertexProp, EdgeProp>::sampleSingleNeighbor(const torch::Tensor& srcVertex
     const VertexType* srcVertexPtr = srcVertexIDs.data_ptr<VertexType>();
 
     auto* sampledVertices_ = new VertexType[len];  // to avoid copy, we need to allocate memory for sampled Vertices
-    std::map<int, std::vector<VertexType>*> shardIndexMap_;
+    std::map<int, std::vector<int64_t>*> shardIndexMap_;
 
     // TODO: fine grain parallelization
     for (int64_t i=0; i < len; i++) {
-        VertexProp prop = vertexProps[srcVertexPtr[i]];
+        VertexProp prop = findVertex(srcVertexPtr[i]);
         auto rand = uniform_randint((int)prop.neighborVertices->size());
 
         VertexType neighborID = (*prop.neighborVertices)[rand];
@@ -188,16 +192,18 @@ Graph<VertexProp, EdgeProp>::sampleSingleNeighbor(const torch::Tensor& srcVertex
 
         auto neighborShardID = (*prop.neighborVerticeShards)[rand];
         if (shardIndexMap_.find(neighborShardID) == shardIndexMap_.end()) {
-            shardIndexMap_[neighborShardID] = new std::vector<VertexType>();  // allocate memory
+            shardIndexMap_[neighborShardID] = new std::vector<int64_t>();  // allocate memory
         }
         shardIndexMap_[neighborShardID]->push_back(i);
     }
 
     auto opts = srcVertexIDs_.options();
-    torch::Tensor sampledVertices = torch::from_blob(sampledVertices_, {len}, opts);  // from_blob() does not make a copy
+    torch::Tensor sampledVertices = torch::from_blob(
+            sampledVertices_, {len}, opts);  // from_blob() does not make a copy
     std::map<int, torch::Tensor> shardIndexMap;
     for (auto & it : shardIndexMap_) {
-        shardIndexMap[it.first] = torch::from_blob(it.second->data(), {(int64_t)it.second->size()}, opts);
+        shardIndexMap[it.first] = torch::from_blob(
+                it.second->data(), {(int64_t)it.second->size()}, torch::kInt64);
     }
 
     return {sampledVertices, shardIndexMap};

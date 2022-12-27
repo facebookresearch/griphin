@@ -10,6 +10,7 @@ add_executable(engine
         Graph.h
         VertexProp.cpp
         VertexProp.h
+        bindings.cpp
         main.cpp)
 
 

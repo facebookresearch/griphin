@@ -45,6 +45,9 @@ template <class VertexProp, class EdgeProp> class Graph{
         Graph(int shardID_, char *idsList, char *haloShardsList, char *pathToCooRow, char *pathToCooColumn, char *partitionBookFile);  // takes shards as the argument
         //Graph(int shardID_,  int coreCount, int haloCount, char *uniqueIDsList, char *pathToCooRow, char *pathToCooColumn, char *pathToVertexData=NULL);  // takes shards as the argument
         ~Graph();
+
+        std::vector<VertexType> getPartitionBook();
+
         // Query
         int getNumOfVertices();
         int getNumOfCoreVertices();

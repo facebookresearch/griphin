@@ -13,11 +13,12 @@ NUM_MACHINES = 4
 NUM_ROOTS = 512
 WALK_LENGTH = 15
 WORKER_NAME = 'worker{}'
+FILE_PATH = '../engine/files'
 
 
 def run(rank):
     os.environ['MASTER_ADDR'] = 'localhost'
-    os.environ['MASTER_PORT'] = '29500'
+    os.environ['MASTER_PORT'] = '29502'
     options = rpc.TensorPipeRpcBackendOptions(num_worker_threads=4)
 
     rpc.init_rpc(WORKER_NAME.format(rank), rank=rank, world_size=NUM_MACHINES, rpc_backend_options=options)
@@ -26,7 +27,7 @@ def run(rank):
         rrefs = []
         for machine_rank in range(NUM_MACHINES):
             info = rpc.get_worker_info(WORKER_NAME.format(machine_rank))
-            rrefs.append(remote(info, GraphShard))
+            rrefs.append(remote(info, GraphShard, args=(FILE_PATH, machine_rank)))
 
         tik_ = time.time()
 
@@ -42,7 +43,7 @@ def run(rank):
 
         c = []
         for fut in futs:
-            c += fut.wait()
+            c.append(fut.wait())
         tok_ = time.time()
 
         print(f'Inner Execution time = {tok_ - tik_:.3}s')

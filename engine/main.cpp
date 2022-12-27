@@ -28,7 +28,7 @@ int main(){
     char p3_rows_file[] = "../files/p3_edge_sources.txt";
     char p3_cols_file[] = "../files/p3_edge_dests.txt";
 
-    char partition_book_file[] = "files/p3_edge_dests.txt";
+    char partition_book_file[] = "../files/partition_book.txt";
 
     Graph<VertexProp, EdgeProp> shard0(0, p0_ids_file, p0_shards_file, p0_rows_file, p0_cols_file, partition_book_file);
     Graph<VertexProp, EdgeProp> shard1(1, p1_ids_file, p1_shards_file, p1_rows_file, p1_cols_file, partition_book_file);

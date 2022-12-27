@@ -2,6 +2,9 @@ from collections import OrderedDict
 
 import torch
 import graph_engine
+import os.path as osp
+
+# import torch.distributed.rpc as rpc
 
 VERTEX_ID_TYPE = torch.int32
 
@@ -11,11 +14,13 @@ def init_graph(path, shard_id):
     shards_file = 'p{}_halo_shards.txt'
     rows_file = 'p{}_edge_sources.txt'
     cols_file = 'p{}_edge_dests.txt'
+    partition_book = osp.join(path, 'partition_book.txt')
 
     def _dir(filename):
-        return path + filename.format(shard_id)
+        return osp.join(path, filename.format(shard_id))
 
-    return graph_engine.Graph(shard_id, _dir(ids_file), _dir(shards_file), _dir(rows_file), _dir(cols_file))
+    return graph_engine.Graph(
+        shard_id, _dir(ids_file), _dir(shards_file), _dir(rows_file), _dir(cols_file), partition_book)
 
 
 class GraphShard:
@@ -27,12 +32,12 @@ class GraphShard:
         self.g = init_graph(path, shard_id)
 
     @property
-    def cluster_size(self):
+    def num_core_nodes(self):
         return self.g.num_core_nodes()
 
     @property
     def cluster_ptr(self):
-        return self.g.cluster_ptr()
+        return self.g.partition_book()
 
     def to_global(self, indices, shard_id=None):
         if shard_id is None:
@@ -41,5 +46,8 @@ class GraphShard:
 
     def step(self, src_nodes) -> (torch.Tensor, OrderedDict):
         nid, shard_dict = self.g.sample_single_neighbor(src_nodes)
+        # print(rpc.get_worker_info(), src_nodes)
+        # print(rpc.get_worker_info(), nid)
+        # print(rpc.get_worker_info(), shard_dict)
         return nid, shard_dict
 
