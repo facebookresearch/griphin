@@ -1,10 +1,10 @@
-from collections import OrderedDict
+from typing import Tuple, Dict
 
 import torch
 import graph_engine
 import os.path as osp
 
-# import torch.distributed.rpc as rpc
+from torch import Tensor
 
 VERTEX_ID_TYPE = torch.int32
 
@@ -44,10 +44,21 @@ class GraphShard:
             shard_id = self.id
         return indices + self.cluster_ptr[shard_id]
 
-    def step(self, src_nodes) -> (torch.Tensor, OrderedDict):
+    def walk_one_step(self, src_nodes: Tensor) -> Tuple[Tensor, Dict[int, Tensor]]:
+        """Sample one neighbor for each source node in current graph shard
+
+        :param
+            -   src_nodes(Tensor):
+                Source node local-ID tensor. Each value represents a core node in the current shard
+                and must smaller than `self.num_core_nodes`
+        :return
+            -   nid(Tensor):
+                Target node local-ID tensor. Note that the local-IDs could belong to core nodes of
+                local and remote shards.
+            -   shard_dict(Dict[int, Tensor]):
+                For each pair, the key is a shardID and the value is an index tensor of `nid`.
+                shard_dict is used to specify which shard does each target node belongs to.
+        """
         nid, shard_dict = self.g.sample_single_neighbor(src_nodes)
-        # print(rpc.get_worker_info(), src_nodes)
-        # print(rpc.get_worker_info(), nid)
-        # print(rpc.get_worker_info(), shard_dict)
         return nid, shard_dict
 

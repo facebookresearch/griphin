@@ -10,7 +10,6 @@ def random_walk(walker_rrefs, num_machines, num_roots, walk_length):
     rank = rpc.get_worker_info().id
     walker: GraphShard = walker_rrefs[rank].to_here()
 
-    # root_nodes = torch.arange(num_roots, dtype=VERTEX_ID_TYPE)  # for test
     root_nodes = torch.randperm(walker.num_core_nodes, dtype=VERTEX_ID_TYPE)[:num_roots]
     root_perm = torch.arange(num_roots)  # index mapping the current step nodes to root nodes
 
@@ -33,10 +32,10 @@ def random_walk(walker_rrefs, num_machines, num_roots, walk_length):
         for p, index_u in shard_dict_u.items():
             if rank == p:
                 continue
-            futs[p] = walker_rrefs[p].rpc_async().step(u[index_u])
+            futs[p] = walker_rrefs[p].rpc_async().walk_one_step(u[index_u])
 
         # Overlap local sampling with remote sampling:
-        ret_local, shard_dict_local = walker.step(u[shard_dict_u[rank]])
+        ret_local, shard_dict_local = walker.walk_one_step(u[shard_dict_u[rank]])
 
         # collect results
         rets_global, rets = [], []
