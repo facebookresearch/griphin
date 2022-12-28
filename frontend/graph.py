@@ -47,17 +47,14 @@ class GraphShard:
     def walk_one_step(self, src_nodes: Tensor) -> Tuple[Tensor, Dict[int, Tensor]]:
         """Sample one neighbor for each source node in current graph shard
 
-        :param
-            -   src_nodes(Tensor):
-                Source node local-ID tensor. Each value represents a core node in the current shard
+        :param  src_nodes: Source node local ID tensor.
+                Each value represents a core node in the current shard
                 and must smaller than `self.num_core_nodes`
-        :return
-            -   nid(Tensor):
-                Target node local-ID tensor. Note that the local-IDs could belong to core nodes of
-                local and remote shards.
-            -   shard_dict(Dict[int, Tensor]):
-                For each pair, the key is a shardID and the value is an index tensor of `nid`.
-                shard_dict is used to specify which shard does each target node belongs to.
+        :return:
+            - nid: Target node local ID tensor.
+              Note that the local IDs could belong to core nodes of local or remote shards.
+            - shard_dict: For each pair, the key is a shard ID and the value is an index tensor of `nid`.
+              shard_dict is used to assign each target node to a shard.
         """
         nid, shard_dict = self.g.sample_single_neighbor(src_nodes)
         return nid, shard_dict

@@ -46,8 +46,8 @@ def run(rank):
             c.append(fut.wait())
         tok_ = time.time()
 
-        print(f'Inner Execution time = {tok_ - tik_:.3}s')
         print(f'Random walk summary:\n {torch.cat(c, dim=0)}')
+        print(f'Inner Execution time = {tok_ - tik_:.3}s')
 
     rpc.shutdown()
 

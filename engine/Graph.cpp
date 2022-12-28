@@ -127,19 +127,19 @@ Graph<VertexProp, EdgeProp>::~Graph(){
 
 template <class VertexProp, class EdgeProp>
 int Graph<VertexProp, EdgeProp>::getNumOfVertices(){
-    printf("Num of Nodes: %d\n", numNodes);
+//    printf("Num of Nodes: %d\n", numNodes);
     return numNodes;
 }
 
 template <class VertexProp, class EdgeProp>
 int Graph<VertexProp, EdgeProp>::getNumOfCoreVertices(){
-    printf("Num of Core Nodes: %d\n", numCoreNodes);
+//    printf("Num of Core Nodes: %d\n", numCoreNodes);
     return numCoreNodes;
 }
 
 template <class VertexProp, class EdgeProp>
 int Graph<VertexProp, EdgeProp>::getNumOfHaloVertices(){
-    printf("Num of Halo Nodes: %d\n", numHaloNodes);
+//    printf("Num of Halo Nodes: %d\n", numHaloNodes);
     return numHaloNodes;
 }
 
