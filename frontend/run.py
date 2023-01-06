@@ -6,8 +6,8 @@ import torch.multiprocessing as mp
 import torch.distributed.rpc as rpc
 from torch.distributed.rpc import RRef, remote
 
-from frontend.graph import GraphShard
-from frontend.random_walk import random_walk
+from graph import GraphShard
+from random_walk import random_walk
 
 NUM_MACHINES = 4
 NUM_ROOTS = 8192

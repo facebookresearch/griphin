@@ -3,7 +3,7 @@ from collections import OrderedDict, defaultdict
 import torch
 from torch.distributed import rpc
 
-from frontend.graph import GraphShard, VERTEX_ID_TYPE
+from graph import GraphShard, VERTEX_ID_TYPE
 
 
 def random_walk(shard_rrefs, num_machines, num_roots, walk_length):
