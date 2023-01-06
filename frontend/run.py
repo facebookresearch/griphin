@@ -10,15 +10,15 @@ from frontend.graph import GraphShard
 from frontend.random_walk import random_walk
 
 NUM_MACHINES = 4
-NUM_ROOTS = 512
+NUM_ROOTS = 8192
 WALK_LENGTH = 15
 WORKER_NAME = 'worker{}'
-FILE_PATH = '../engine/files'
+FILE_PATH = '../engine/ogbn_files_txt_small'
 
 
 def run(rank):
     os.environ['MASTER_ADDR'] = 'localhost'
-    os.environ['MASTER_PORT'] = '29502'
+    os.environ['MASTER_PORT'] = '29500'
     options = rpc.TensorPipeRpcBackendOptions(num_worker_threads=4)
 
     rpc.init_rpc(WORKER_NAME.format(rank), rank=rank, world_size=NUM_MACHINES, rpc_backend_options=options)

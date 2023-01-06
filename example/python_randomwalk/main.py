@@ -14,8 +14,9 @@ from pyg_lib.sampler import random_walk as pyg_random_walk
 
 ENABLE_COMMUNICATION = True
 NUM_MACHINES = 4
-NUM_ROOTS = 512
+NUM_ROOTS = 8192
 NUM_WALKS = 15
+RUNS = 10
 
 WORKER_NAME = 'worker{}'
 PROCESSED_DIR = osp.join(os.environ.get('DATA_DIR'), 'ogb', 'ogbn_products', 'processed')
@@ -39,7 +40,7 @@ class Walker:
         return self._batch_size
 
     def load_sub_data(self):
-        filename_ = f'partition_{NUM_MACHINES}_{self.id}.pt'
+        filename_ = f'partition_40_{NUM_MACHINES}_{self.id}.pt'
         path_ = osp.join(PROCESSED_DIR, filename_)
         return torch.load(path_)
 
@@ -71,7 +72,8 @@ def random_walk(walker_rrefs):
     walker = walker_rrefs[rank].to_here()
 
     batch_size = walker.batch_size
-    cluster_ptr = torch.tensor([0, 613761, 1236365, 1838296, 2449029])  # TODO: ogbn_products
+    # cluster_ptr = torch.tensor([0, 613761, 1236365, 1838296, 2449029])  # TODO: ogbn_products
+    cluster_ptr = torch.tensor([0, 14997, 30413, 46108, 613761])  # TODO: ogbn_products 1/40
     root_nodes = torch.randperm(batch_size)[:NUM_ROOTS]
     walks_summary = torch.full((NUM_ROOTS, NUM_WALKS + 1), -1)
     walks_summary[:, 0] = walker.to_global(root_nodes)
@@ -85,7 +87,7 @@ def random_walk(walker_rrefs):
         print(f"Starting Distributed Random Walk:"
               f" world_size={NUM_MACHINES}, num_roots={NUM_ROOTS}, num_walks={NUM_WALKS}")
 
-    package_sizes = []
+    # package_sizes = []
     for i in range(NUM_WALKS):
         # print(f'{i}---{rank}', u, out_of_batch)
         u_out_global = u[out_of_batch]
@@ -100,7 +102,7 @@ def random_walk(walker_rrefs):
             if num_data == 0:
                 continue
 
-            package_sizes.append(num_data.item() * u_out_global.element_size())
+            # package_sizes.append(num_data.item() * u_out_global.element_size())
 
             reverse_idx.append(mask_to_index(mask))
             u_out_j = u_out_global[mask] - cluster_ptr[j]  # global -> local
@@ -148,7 +150,8 @@ def random_walk(walker_rrefs):
         u = v
 
     # print(rank, walks_summary)
-    return package_sizes
+    # return package_sizes
+    return walks_summary
 
 
 def run(rank):
@@ -166,23 +169,25 @@ def run(rank):
 
         tik_ = time.time()
 
-        futs = []
-        for rref in rrefs:
-            futs.append(
-                rpc.rpc_async(
-                    rref.owner(),
-                    random_walk,
-                    args=(rrefs,)
+        for _ in range(RUNS):
+            futs = []
+            for rref in rrefs:
+                futs.append(
+                    rpc.rpc_async(
+                        rref.owner(),
+                        random_walk,
+                        args=(rrefs,)
+                    )
                 )
-            )
 
-        c = []
-        for fut in futs:
-            c += fut.wait()
+            c = []
+            for fut in futs:
+                c.append(fut.wait())
+
         tok_ = time.time()
 
-        print(f'Total Package sizes: {c}')
-        print(f'Inner Execution time = {tok_ - tik_:.3}s')
+        print(f'Random walk summary:\n {torch.cat(c, dim=0)}')
+        print(f'Avg Inner Execution time = {(tok_ - tik_)/RUNS:.3f}s')
 
     rpc.shutdown()
 

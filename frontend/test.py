@@ -21,7 +21,13 @@ def test1():
 
 
 def test2():
-    gs = GraphShard('../engine/files', 0)
+    gs = GraphShard('../engine/ogbn_files_txt_small', 0)
+    g = gs.g
+    print(g.num_core_nodes())
+    print(g.partition_book())
+    src = torch.arange(g.num_core_nodes()-100, g.num_core_nodes(), dtype=torch.int32)
+    print(src)
+    print(g.sample_single_neighbor(src))
     print(gs.num_core_nodes)
 
 
@@ -41,5 +47,5 @@ def test4():
 
 
 if __name__ == '__main__':
-    test1()
+    test2()
 

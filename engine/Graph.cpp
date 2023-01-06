@@ -185,12 +185,23 @@ Graph<VertexProp, EdgeProp>::sampleSingleNeighbor(const torch::Tensor& srcVertex
     // TODO: fine grain parallelization
     for (int64_t i=0; i < len; i++) {
         VertexProp prop = findVertex(srcVertexPtr[i]);
-        auto rand = uniform_randint((int)prop.neighborVertices->size());
 
-        VertexType neighborID = (*prop.neighborVertices)[rand];
-        sampledVertices_[i] = neighborID;
+        int neighborShardID;
 
-        auto neighborShardID = (*prop.neighborVerticeShards)[rand];
+        if (prop.neighborVertices->size() == 0) {
+            VertexType neighborID = prop.getNodeId();
+            sampledVertices_[i] = neighborID;
+            neighborShardID = prop.shardID;
+        }
+        else {
+            auto rand = uniform_randint((int)prop.neighborVertices->size());
+
+            VertexType neighborID = (*prop.neighborVertices)[rand];
+            sampledVertices_[i] = neighborID;
+
+            neighborShardID = (*prop.neighborVerticeShards)[rand];
+        }
+
         if (shardIndexMap_.find(neighborShardID) == shardIndexMap_.end()) {
             shardIndexMap_[neighborShardID] = new std::vector<int64_t>();  // allocate memory
         }
