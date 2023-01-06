@@ -3,7 +3,7 @@
 ## Installation
 - Compile C++ engine
     ```
-    pip install ./engine
+    python engine/setup.py build_ext --build-lib=frontend
     ```
 
 ## Run Examples

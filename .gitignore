@@ -5,3 +5,6 @@
 /engine/build/
 /example/python_libtorch_pybind/python_example.egg-info/
 /example/python_libtorch_pybind/build/
+*.o
+*.so
+*.pyc
