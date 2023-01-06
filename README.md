@@ -8,7 +8,7 @@
 
 ## Run Examples
 
-- Distributed random Walk 
+- Distributed random walk 
   ```
   python frontend/run.py
   ```
