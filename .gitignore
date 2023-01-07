@@ -8,3 +8,4 @@
 *.o
 *.so
 *.pyc
+tb_log*

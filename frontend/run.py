@@ -1,5 +1,6 @@
 import os
 import argparse
+import time
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--num_machine', type=int, default=4, help='number of machines (simulated as processes)')
@@ -7,7 +8,8 @@ parser.add_argument('--num_root', type=int, default=8192, help='number of root n
 parser.add_argument('--walk_length', type=int, default=15, help='walk length')
 parser.add_argument('--worker_name', type=str, default='worker{}', help='name of workers, formatted by rank')
 parser.add_argument('--file_path', type=str, default='engine/ogbn_files_txt_small', help='path to dataset')
-args = parser.parse_args()
+parser.add_argument('--profile', action='store_true', help='whether to use torch.profile to profile program. Note: this will create overheads and slow down program.')
+parser.add_argument('--profile_prefix', type=str, default='tb_log/', help='path to profiling log')
 
 # NUM_MACHINES = 4
 # NUM_ROOTS = 8192
@@ -15,18 +17,16 @@ args = parser.parse_args()
 # WORKER_NAME = 'worker{}'
 # FILE_PATH = 'engine/ogbn_files_txt_small'
 
-import time
 import torch
 import torch.multiprocessing as mp
 import torch.distributed.rpc as rpc
 from torch.distributed.rpc import RRef, remote
+from contextlib import nullcontext
 
 from graph import GraphShard
 from random_walk import random_walk
 
-
-
-def run(rank):
+def run(rank, args):
     os.environ['MASTER_ADDR'] = 'localhost'
     os.environ['MASTER_PORT'] = '29500'
     options = rpc.TensorPipeRpcBackendOptions(num_worker_threads=4)
@@ -47,7 +47,7 @@ def run(rank):
                 rpc.rpc_async(
                     rref.owner(),
                     random_walk,
-                    args=(rrefs, args.num_machine, args.num_root, args.walk_length)
+                    args=(rrefs, args.num_machine, args.num_root, args.walk_length, args.profile, '{}/{}'.format(args.profile_prefix, rref.owner()))
                 )
             )
 
@@ -63,10 +63,13 @@ def run(rank):
 
 
 if __name__ == '__main__':
-    print('Spawn Multi-Process to simulate Multi-Machine scenario')
+    args = parser.parse_args()
+    if args.profile:
+        args.profile_prefix = '{}/{}'.format(args.profile_prefix, time.time())
 
+    print('Spawn Multi-Process to simulate Multi-Machine scenario')
     tik = time.time()
-    mp.spawn(run, nprocs=args.num_machine, join=True)
+    mp.spawn(run, nprocs=args.num_machine, args=(args,), join=True)
     tok = time.time()
 
     print(f'Outer Execution time = {tok - tik:.3}s')
