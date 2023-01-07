@@ -1,4 +1,5 @@
 from collections import OrderedDict, defaultdict
+from contextlib import nullcontext
 
 import torch
 from torch.distributed import rpc
