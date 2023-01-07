@@ -1,9 +1,10 @@
-from collections import defaultdict
+import os
+from pathlib import Path
 
 import torch
 import graph_engine
 
-from frontend.graph import GraphShard
+from graph import GraphShard
 
 
 def test1():
@@ -32,20 +33,20 @@ def test2():
 
 
 def test3():
-    d = torch.tensor([0, 1, 2, 4, 3, 5])
-    # t = torch.tensor([0, 1, 4, 5, 2, 3])
-    # d = d.index_select(0, t)
-    print(d)
+    current_dir = Path(__file__)
+    project_dir = [p for p in current_dir.parents if p.parts[-1] == 'graph_engine'][0]
+    print(project_dir)
 
 
 def test4():
-    d = {2: 1, 1: 0}
-    # d = defaultdict(list)
-    # d[1].append(123)
-    for k in sorted(d.items()):
-        print(k)
+    root1 = os.path.abspath(__file__)
+    root2 = os.path.dirname(root1)
+    root3 = os.path.dirname(root2)
+    print(root1)
+    print(root2)
+    print(root3)
 
 
 if __name__ == '__main__':
-    test2()
+    test3()
 

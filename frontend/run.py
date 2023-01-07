@@ -1,13 +1,15 @@
 import os
 import argparse
 
-parser = argparse.ArgumentParser()
-parser.add_argument('--num_machine', type=int, default=4, help='number of machines (simulated as processes)')
-parser.add_argument('--num_root', type=int, default=8192, help='number of root nodes in each machine')
-parser.add_argument('--walk_length', type=int, default=15, help='walk length')
-parser.add_argument('--worker_name', type=str, default='worker{}', help='name of workers, formatted by rank')
-parser.add_argument('--file_path', type=str, default='engine/ogbn_files_txt_small', help='path to dataset')
-args = parser.parse_args()
+import time
+import torch
+import torch.multiprocessing as mp
+import torch.distributed.rpc as rpc
+from torch.distributed.rpc import RRef, remote
+
+from utils import get_root_path
+from graph import GraphShard
+from random_walk import random_walk
 
 # NUM_MACHINES = 4
 # NUM_ROOTS = 8192
@@ -15,15 +17,15 @@ args = parser.parse_args()
 # WORKER_NAME = 'worker{}'
 # FILE_PATH = 'engine/ogbn_files_txt_small'
 
-import time
-import torch
-import torch.multiprocessing as mp
-import torch.distributed.rpc as rpc
-from torch.distributed.rpc import RRef, remote
+default_file_path = os.path.join(get_root_path(), 'engine/ogbn_files_txt_small')
 
-from graph import GraphShard
-from random_walk import random_walk
-
+parser = argparse.ArgumentParser()
+parser.add_argument('--num_machine', type=int, default=4, help='number of machines (simulated as processes)')
+parser.add_argument('--num_root', type=int, default=8192, help='number of root nodes in each machine')
+parser.add_argument('--walk_length', type=int, default=15, help='walk length')
+parser.add_argument('--worker_name', type=str, default='worker{}', help='name of workers, formatted by rank')
+parser.add_argument('--file_path', type=str, default=default_file_path, help='path to dataset')
+args = parser.parse_args()
 
 
 def run(rank):
