@@ -1,6 +1,5 @@
 import os
 import argparse
-import time
 
 import time
 import torch
@@ -45,9 +44,8 @@ def run(rank, args):
             info = rpc.get_worker_info(args.worker_name.format(machine_rank))
             rrefs.append(remote(info, GraphShard, args=(args.file_path, machine_rank)))
 
-        tik_ = time.time()
-
-        for i in range(3):
+        for i in range(5):
+            tik_ = time.time()
             futs = []
             for rref in rrefs:
                 futs.append(
@@ -78,5 +76,6 @@ if __name__ == '__main__':
     print('Spawn Multi-Process to simulate Multi-Machine scenario')
     tik = time.time()
     mp.spawn(run, nprocs=args.num_machine, args=(args,), join=True)
+    tok = time.time()
 
     print(f'Outer Execution time = {tok - tik:.3}s')

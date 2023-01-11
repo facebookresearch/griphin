@@ -21,7 +21,7 @@ def init_graph(path, shard_id):
         return osp.join(path, filename.format(shard_id))
 
     return graph_engine.Graph(
-        shard_id, _dir(ids_file), _dir(shards_file), _dir(rows_file), _dir(cols_file), partition_book)
+        shard_id, _dir(ids_file), _dir(shards_file), _dir(csr_indices_file), _dir(csr_shard_indices_file), _dir(csr_indptrs_file), partition_book)
 
     
 

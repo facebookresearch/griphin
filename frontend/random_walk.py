@@ -125,10 +125,6 @@ def random_walk(shard_rrefs, num_machines, num_roots, walk_length, profile, prof
 
             tok_ = time.time()
 
-            part4.append(tok_ - tik_)
-
-            tok_ = time.time()
-
             part1.append(tok_-tik_)
 
             tik_ = time.time()
@@ -155,10 +151,10 @@ def random_walk(shard_rrefs, num_machines, num_roots, walk_length, profile, prof
 
                 sum2_ = 0
                 for q, index_v in shard_dict.items():
-                    tik2_s = time.time()
+                    tik2_ = time.time()
                     shard_dict_v[q].append(index_v + offset)  # merge shard dicts
-                    tok2_s = time.time()
-                    sum2_ += tok2_s - tik2_s 
+                    tok2_ = time.time()
+                    sum2_ += tok2_ - tik2_ 
 
                     tik3_ = time.time()
 
@@ -211,7 +207,6 @@ def random_walk(shard_rrefs, num_machines, num_roots, walk_length, profile, prof
         print("Rank: ", rank, " Avg. for Part 1:", sum(part1), "\n")
         print("Rank: ", rank, " Avg. for Part 2:", sum(part2), "\n")
         print("Rank: ", rank, " Avg. for Part 3:", sum(part3), "\n")
-        print("Rank: ", rank, " Avg. for Part 4:", sum(part4), "\n")
 
         print("Rank: ", rank, " Avg. for Part 2_1:", sum(part2_1), "\n")
         print("Rank: ", rank, " Avg. for Part 2_2:", sum(part2_2), "\n")
