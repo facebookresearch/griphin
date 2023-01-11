@@ -30,20 +30,15 @@ template <class VertexProp, class EdgeProp> class Graph{
         EdgeType numEdges;
 
         std::vector<VertexType> nodeIDs;
-        std::vector<VertexType> haloNodeRemoteLocalID;
         std::vector<int> haloNodeShards;
-
-        //std::vector<VertexType> nodeGlobalIDs;      // increasing order
-        
-        std::vector<VertexType> cooRow;
-        std::vector<VertexType> cooCol;
-
+        std::vector<VertexType> csrIndices;
+        std::vector<VertexType> csrShardIndices;
+        std::vector<VertexType> csrIndptrs;
         std::vector<VertexType> partitionBook;
 
 
     public:
-        Graph(int shardID_, char *idsList, char *haloShardsList, char *pathToCooRow, char *pathToCooColumn, char *partitionBookFile);  // takes shards as the argument
-        //Graph(int shardID_,  int coreCount, int haloCount, char *uniqueIDsList, char *pathToCooRow, char *pathToCooColumn, char *pathToVertexData=NULL);  // takes shards as the argument
+        Graph(int shardID_, char *idsList, char *haloShardsList, char *csrIndicesFile, char *csrShardIndicesFile, char *csrIndPtrsFile, char *partitionBookFile);  // takes shards as the argument
         ~Graph();
 
         std::vector<VertexType> getPartitionBook();
@@ -53,6 +48,9 @@ template <class VertexProp, class EdgeProp> class Graph{
         int getNumOfCoreVertices();
         int getNumOfHaloVertices();
         VertexProp findVertex(VertexType vertexID);          // returns local id in the current shard based on given global id
+
+        std::vector<int> getNeighbors(VertexType vertexID);
+        std::vector<int> getNeighborShards(VertexType vertexID);
 
         bool findVertexLocking(VertexType localVertexID);          // i did not understand what are the locks used for but i am assuming this function returns true if the given node is locked
         VertexProp findVertexProp(VertexType localVertexID);       // returns the vertex properties of given local vertex ID
