@@ -13,13 +13,13 @@ from utils import get_root_path
 from graph import GraphShard
 from random_walk import random_walk
 
-# NUM_MACHINES = 4
-# NUM_ROOTS = 8192
-# WALK_LENGTH = 15
-# WORKER_NAME = 'worker{}'
-# FILE_PATH = 'engine/ogbn_files_txt_small'
+NUM_MACHINES = 4
+NUM_ROOTS = 8192
+WALK_LENGTH = 15
+WORKER_NAME = 'worker{}'
+FILE_PATH = 'engine/ogbn_csr_format'
 
-default_file_path = os.path.join(get_root_path(), 'engine/ogbn_files_txt_small')
+default_file_path = os.path.join(get_root_path(), 'engine/ogbn_csr_format')
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--num_machine', type=int, default=4, help='number of machines (simulated as processes)')
@@ -34,7 +34,7 @@ parser.add_argument('--profile_prefix', type=str, default='tb_log/', help='path 
 
 def run(rank, args):
     os.environ['MASTER_ADDR'] = 'localhost'
-    os.environ['MASTER_PORT'] = '29500'
+    os.environ['MASTER_PORT'] = '29502'
     options = rpc.TensorPipeRpcBackendOptions(num_worker_threads=4)
 
     rpc.init_rpc(args.worker_name.format(rank), rank=rank, world_size=args.num_machine, rpc_backend_options=options)
@@ -47,24 +47,25 @@ def run(rank, args):
 
         tik_ = time.time()
 
-        futs = []
-        for rref in rrefs:
-            futs.append(
-                rpc.rpc_async(
-                    rref.owner(),
-                    random_walk,
-                    args=(rrefs, args.num_machine, args.num_root, args.walk_length, args.profile,
-                          '{}/{}'.format(args.profile_prefix, rref.owner()))
+        for i in range(3):
+            futs = []
+            for rref in rrefs:
+                futs.append(
+                    rpc.rpc_async(
+                        rref.owner(),
+                        random_walk,
+                        args=(rrefs, args.num_machine, args.num_root, args.walk_length, args.profile,
+                            '{}/{}'.format(args.profile_prefix, rref.owner()))
+                    )
                 )
-            )
 
-        c = []
-        for fut in futs:
-            c.append(fut.wait())
-        tok_ = time.time()
+            c = []
+            for fut in futs:
+                c.append(fut.wait())
+            tok_ = time.time()
 
-        print(f'Random walk summary:\n {torch.cat(c, dim=0)}')
-        print(f'Inner Execution time = {tok_ - tik_:.3}s')
+            print(f'Random walk summary:\n {torch.cat(c, dim=0)}')
+            print(f'Inner Execution time = {tok_ - tik_:.3}s')
 
     rpc.shutdown()
 
@@ -77,6 +78,5 @@ if __name__ == '__main__':
     print('Spawn Multi-Process to simulate Multi-Machine scenario')
     tik = time.time()
     mp.spawn(run, nprocs=args.num_machine, args=(args,), join=True)
-    tok = time.time()
 
     print(f'Outer Execution time = {tok - tik:.3}s')

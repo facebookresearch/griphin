@@ -12,8 +12,9 @@ VERTEX_ID_TYPE = torch.int32
 def init_graph(path, shard_id):
     ids_file = 'p{}_ids.txt'
     shards_file = 'p{}_halo_shards.txt'
-    rows_file = 'p{}_edge_sources.txt'
-    cols_file = 'p{}_edge_dests.txt'
+    csr_indices_file = 'csr_indices{}.txt'
+    csr_shard_indices_file = 'csr_shards{}.txt'
+    csr_indptrs_file = 'csr_indptr{}.txt'
     partition_book = osp.join(path, 'partition_book.txt')
 
     def _dir(filename):
@@ -22,6 +23,7 @@ def init_graph(path, shard_id):
     return graph_engine.Graph(
         shard_id, _dir(ids_file), _dir(shards_file), _dir(rows_file), _dir(cols_file), partition_book)
 
+    
 
 class GraphShard:
     """
