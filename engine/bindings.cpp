@@ -13,4 +13,3 @@ PYBIND11_MODULE(graph_engine, m) {
     .def("sample_single_neighbor", &Graph<VertexProp, EdgeProp>::sampleSingleNeighbor)
     .def("partition_book", &Graph<VertexProp, EdgeProp>::getPartitionBook);
 }
-
