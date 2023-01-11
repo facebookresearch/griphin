@@ -5,7 +5,7 @@
 #include "utils.h"
 
 template <class VertexProp, class EdgeProp>
-Graph<VertexProp, EdgeProp>::Graph(int shardID_, char *idsList, char *haloShardsList,  char *pathToCooRow, char *pathToCooColumn, char *partitionBookFile){  // takes shards as the argument
+    Graph<VertexProp, EdgeProp>::Graph(int shardID_, char *idsList, char *haloShardsList, char *csrIndicesFile, char *csrShardIndicesFile, char *csrIndPtrsFile, char *partitionBookFile){  // takes shards as the argument
     shardID = shardID_;
 
     numCoreNodes = 0;
@@ -24,88 +24,32 @@ Graph<VertexProp, EdgeProp>::Graph(int shardID_, char *idsList, char *haloShards
        we initially planned to start from 0 in each shard. However, it required us to keep <shard_id, vertex_id> pair for edges as there might be vertices with the same vertex_id
        however, we can easily change it as current format keeps all the necessary information.
     */
-    readFile(idsList, &nodeIDs, &numNodes);
-
     readFile(partitionBookFile, &partitionBook, &dummy);
 
-    // reads the shard ids of the vertices.
-    // i didn't store the shard id of the core ones as shardID variable holds it.
+    readFile(idsList, &nodeIDs, &numNodes);
+
+    // reads the shard ids of the halo vertices.
     readFile(haloShardsList, &haloNodeShards, &numHaloNodes);
 
     numCoreNodes = numNodes - numHaloNodes; 
 
-    int offset = partitionBook[shardID];
+    //int offset = partitionBook[shardID];
 
-    for(int i = numCoreNodes; i < numNodes; i++){
-        int tempShard = haloNodeShards[i-numCoreNodes];
-        int tempOffset = partitionBook[tempShard];
-        haloNodeRemoteLocalID.push_back(nodeIDs[i] - tempOffset);
-    }
+    // read the csr indices file
+    readFile(csrIndicesFile, &csrIndices, &dummy);
 
-    for(int i=0; i < numCoreNodes; i++){
-        vertexProps.push_back(VertexProp(i, shardID));
-    }
-
-    /*
-    for(int i=0; i < nodeIDs.size(); i++){
-        if(i < numCoreNodes)
-            vertexProps.push_back(VertexProp(nodeIDs[i], shardID));
-        else    
-            vertexProps.push_back(VertexProp(nodeIDs[i], haloNodeShards[i-numCoreNodes]));
-    }
-    */
-
-    // read the source nodes file
-    readFile(pathToCooRow, &cooRow, &dummy);
-
-    // read the dest nodes file    
-    readFile(pathToCooColumn, &cooCol, &numEdges);
+    // read the csr shard indices file
+    readFile(csrShardIndicesFile, &csrShardIndices, &dummy);
     
-    for(int i = 0; i < numEdges; i++){
-        for(int j = 0; j < numCoreNodes; j++){
-            if(cooRow[i] == nodeIDs[j]){
-                if(cooCol[i] >= nodeIDs[0] && cooCol[i] <= nodeIDs[numCoreNodes-1]){
-                    //printf("if 1\n");
-                    vertexProps[j].addNeighbor(cooCol[i] - offset, shardID);
-                }
-                else{
-                    std::vector<int>::iterator it; 
-                    it = std::find(nodeIDs.begin(), nodeIDs.end(), cooCol[i]);
-                    int index = it - nodeIDs.begin() - numCoreNodes;
-                    int tempShard = haloNodeShards[index];
-                    int tempOffset = partitionBook[tempShard];
-                    vertexProps[j].addNeighbor(cooCol[i] - tempOffset, tempShard);
-                }
-            }
-        }
+    // read the csr indptrs file
+    readFile(csrIndPtrsFile, &csrIndptrs, &dummy);
+
+    for(int i = 0; i < numCoreNodes; i++){
+        int neighborStartIndex = csrIndptrs[i];
+        int neighborEndIndex = csrIndptrs[i+1];
+        vertexProps.push_back(VertexProp(i, shardID, neighborStartIndex, neighborEndIndex));
     }
 
-/*
-    std::ifstream vertexDataFile(pathToVertexData);         // data format in txt file is 2d array
-    if(vertexDataFile.is_open()){
-        for(int i = 0; i < numCoreNodes; i++){
-            std::vector<float> vertexData;
-            for(int j = 0; j < SIZE; j++){
-                vertexData.push_back(std::atoi(file));
-            }
-            int startIndex = indptr[i];
-            int endIndex = indptr[i+1];
-
-            std::vector<int> neighborVertices_;
-            std::vector<int>::iterator it;
-            for(int k = startIndex; k < endIndex; k++){
-                int neighborGlobal = indices[k];
-                auto it = std::find (nodeGlobalIDs.begin(), nodeGlobalIDs.end(), neighborGlobal);
-                neighborVertices_.push_back(it - nodeGlobalIDs.begin());
-            }
-            vertexProps.push_back(VertexProp(i, vertexData, neighborVertices_));
-        }
-        indicesFile.close();
-    }   
-    else{
-        std::cout << "Unable to open vertex data file" << std::endl; 
-    }
-*/
 }
 
 template<class VertexProp, class EdgeProp>
@@ -114,13 +58,33 @@ std::vector<VertexType> Graph<VertexProp, EdgeProp>::getPartitionBook() {
 }
 
 template <class VertexProp, class EdgeProp> 
-VertexProp Graph<VertexProp, EdgeProp>::findVertex(int vertexID){
-    // std::vector<int>::iterator it;
-    // it = std::find(nodeIDs.begin(), nodeIDs.end(), vertexID);
-    // int index = it - nodeIDs.begin();
-    // printf("index %d\n", index);
+VertexProp Graph<VertexProp, EdgeProp>::findVertex(VertexType vertexID){
     return vertexProps[vertexID];
 } 
+
+template <class VertexProp, class EdgeProp>
+std::vector<int> Graph<VertexProp, EdgeProp>::getNeighbors(VertexType vertexID){
+    std::vector<int> neighbors;
+    int neighborStartIndex = csrIndptrs[vertexID];
+    int neighborEndIndex = csrIndptrs[vertexID+1];
+
+    for(int i = neighborStartIndex; i < neighborEndIndex; i++){
+        neighbors.push_back(csrIndices[i]);
+    }
+    return neighbors;
+}
+
+template <class VertexProp, class EdgeProp>
+std::vector<int> Graph<VertexProp, EdgeProp>::getNeighborShards(VertexType vertexID){
+    std::vector<int> neighborShards;
+    int neighborStartIndex = csrIndptrs[vertexID];
+    int neighborEndIndex = csrIndptrs[vertexID+1];
+
+    for(int i = neighborStartIndex; i < neighborEndIndex; i++){
+        neighborShards.push_back(csrShardIndices[i]);
+    }
+    return neighborShards;
+}
 
 template <class VertexProp, class EdgeProp>
 Graph<VertexProp, EdgeProp>::~Graph(){
@@ -186,29 +150,42 @@ Graph<VertexProp, EdgeProp>::sampleSingleNeighbor(const torch::Tensor& srcVertex
     std::random_device r;
     std::default_random_engine e(r());
 
+    // TODO: fine grain parallelization
     for (int64_t i=0; i < len; i++) {
+        //printf("source: %d - num of core: %d\n", srcVertexPtr[i], getNumOfCoreVertices());
         VertexProp prop = findVertex(srcVertexPtr[i]);
+        int neighborStartIndex = prop.getNeighborStartIndex();
+        int neighborEndIndex = prop.getNeighborEndIndex();
+        int size = neighborEndIndex - neighborStartIndex;
+        //printf("neighbor size: %d \n", neighbors.size());
+        // for(int i = 0; i < neighbors.size(); i++){
+        //     printf("%d - %d ** ", neighbors[i], neighborShards[i]);
+        // }
+        //printf("\n");
+
 
         int neighborShardID;
 
-        if (prop.neighborVertices->size() == 0) {
+        if (size == 0) {
             VertexType neighborID = prop.getNodeId();
             sampledVertices_[i] = neighborID;
             neighborShardID = prop.shardID;
         }
-        else {
-//            auto rand = uniform_randint((int)prop.neighborVertices->size());
-            std::uniform_int_distribution<int> uniform_dist(0, (int)prop.neighborVertices->size()-1);
+        else{
+            std::uniform_int_distribution<int> uniform_dist(0, size-1);
             int rand = uniform_dist(e);
 
-            VertexType neighborID = (*prop.neighborVertices)[rand];
+            VertexType neighborID = csrIndices[neighborStartIndex + rand];
             sampledVertices_[i] = neighborID;
 
-            neighborShardID = (*prop.neighborVerticeShards)[rand];
+            neighborShardID = csrShardIndices[neighborStartIndex + rand];
         }
+
+        //printf("chosen neighbor for i = %d - %d - %d \n\n", i, neighborID, neighborShardID);
 
         if (shardIndexMap_.find(neighborShardID) == shardIndexMap_.end()) {
             shardIndexMap_[neighborShardID] = new std::vector<int64_t>();  // allocate memory
+            //printf("shard not found so creating \n\n");
         }
         shardIndexMap_[neighborShardID]->push_back(i);
     }

@@ -33,7 +33,7 @@ void omp_test(){
 
 PYBIND11_MODULE(graph_engine, m) {
     py::class_<Graph<VertexProp, EdgeProp>>(m, "Graph")
-    .def(py::init<int, char*, char*, char*, char*, char*>())
+    .def(py::init<int, char*, char*, char*, char*, char*, char*>())
     .def("num_core_nodes", &Graph<VertexProp, EdgeProp>::getNumOfCoreVertices)
     .def("sample_single_neighbor", &Graph<VertexProp, EdgeProp>::sampleSingleNeighbor)
     .def("sample_single_neighbor2", &Graph<VertexProp, EdgeProp>::sampleSingleNeighbor2)
@@ -41,4 +41,3 @@ PYBIND11_MODULE(graph_engine, m) {
 
     m.def("omp_add", &omp_test, "A function that adds b in to a for 10 times");
 }
-

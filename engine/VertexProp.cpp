@@ -1,9 +1,11 @@
 #include <iostream>
 #include "VertexProp.h"
 
-VertexProp::VertexProp(int vertexID_, int shardID_) {
+VertexProp::VertexProp(int vertexID_, int shardID_, int neighborStartIndex_, int neighborEndIndex_) {
     vertexID = vertexID_;
     shardID = shardID_;
+    neighborStartIndex = neighborStartIndex_;
+    neighborEndIndex = neighborEndIndex_;
     neighborCount = 0;
     isLocked = false;
 }
@@ -24,27 +26,37 @@ int VertexProp::getShard(){
     return shardID;
 }
 
+int VertexProp::getNeighborStartIndex(){
+    return neighborStartIndex;
+}
+
+int VertexProp::getNeighborEndIndex(){
+    return neighborEndIndex;
+}
+
+
+/* what happens when we want to add neighbor (question for the new csr format)
 bool VertexProp::addNeighbor(VertexType neighborId, int neighborShardId){
     neighborVertices->push_back(neighborId);
     neighborVerticeShards->push_back(neighborShardId);
     neighborCount ++;
     return true;
 }
-
+*/
 void VertexProp::getNeighbors(){
-    printf("Neighbors of node %d: ", vertexID);
-    for(int i = 0; i < neighborCount; i++){
-        printf("%d ", (*neighborVertices)[i]);
-    }
-    printf("\n");
+    // printf("Neighbors of node %d: ", vertexID);
+    // for(int i = 0; i < neighborCount; i++){
+    //     printf("%d ", (*neighborVertices)[i]);
+    // }
+    // printf("\n");
 }
 
 void VertexProp::getShardsOfNeighbors(){
-    printf("Shards of neighbors of node %d: ", vertexID);
-    for(int i = 0; i < neighborCount; i++){
-        printf("%d ", (*neighborVerticeShards)[i]);
-    }
-    printf("\n\n");
+    // printf("Shards of neighbors of node %d: ", vertexID);
+    // for(int i = 0; i < neighborCount; i++){
+    //     printf("%d ", (*neighborVerticeShards)[i]);
+    // }
+    // printf("\n\n");
 }
 
 
