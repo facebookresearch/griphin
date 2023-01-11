@@ -220,21 +220,23 @@ Graph<VertexProp, EdgeProp>::sampleSingleNeighbor2(const torch::Tensor& srcVerte
     #pragma omp parallel for schedule(static) default(none) shared(e, len, srcVertexPtr, localVertexIDs_, globalVertexIDs_, shardIDs_)
     for (int64_t i=0; i < len; i++) {
         VertexProp prop = findVertex(srcVertexPtr[i]);
+        int neighborStartIndex = prop.getNeighborStartIndex();
+        int neighborEndIndex = prop.getNeighborEndIndex();
+        int size = neighborEndIndex - neighborStartIndex;
 
         VertexType neighborID;
         ShardType neighborShardID;
 
-        if (prop.neighborVertices->size() == 0) {
+        if (size == 0) {
             neighborID = prop.getNodeId();
             neighborShardID = prop.shardID;
         }
         else {
-            std::uniform_int_distribution<int> uniform_dist(0, (int)prop.neighborVertices->size()-1);
+            std::uniform_int_distribution<int> uniform_dist(0, size-1);
             int rand = uniform_dist(e);
-//            int rand = 0;
 //            auto rand = uniform_randint((int)prop.neighborVertices->size());
-            neighborID = (*prop.neighborVertices)[rand];
-            neighborShardID = (*prop.neighborVerticeShards)[rand];
+            neighborID = csrIndices[neighborStartIndex + rand];;
+            neighborShardID = csrShardIndices[neighborStartIndex + rand];
         }
 
         localVertexIDs_[i] = neighborID;
