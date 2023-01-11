@@ -7,6 +7,7 @@ import os.path as osp
 from torch import Tensor
 
 VERTEX_ID_TYPE = torch.int32
+SHARD_ID_TYPE = torch.int32
 
 
 def init_graph(path, shard_id):
@@ -59,3 +60,12 @@ class GraphShard:
         nid, shard_dict = self.g.sample_single_neighbor(src_nodes)
         return nid, shard_dict
 
+    def walk_one_step2(self, src_nodes: Tensor) -> Tuple[Tensor, Tensor, Tensor]:
+        local_nid, global_nid, shard_id = self.g.sample_single_neighbor2(src_nodes)
+        return local_nid, global_nid, shard_id
+
+
+    # --- for test only ---
+    def get_dict_tensor(self, root_nodes):
+        rand = torch.ones_like(root_nodes)
+        return rand, {1: rand[:10], 2: rand[10: 40], 3: rand[40: 100], 4: rand[100:]}

@@ -17,6 +17,7 @@ NUM_MACHINES = 4
 NUM_ROOTS = 8192
 NUM_WALKS = 15
 RUNS = 10
+WARMUP = 3
 
 WORKER_NAME = 'worker{}'
 PROCESSED_DIR = osp.join(os.environ.get('DATA_DIR'), 'ogb', 'ogbn_products', 'processed')
@@ -167,9 +168,12 @@ def run(rank):
             info = rpc.get_worker_info(WORKER_NAME.format(machine_rank))
             rrefs.append(remote(info, Walker))
 
-        tik_ = time.time()
+        for i in range(RUNS + WARMUP):
+            if i == WARMUP:
+                tik_ = time.time()
 
-        for _ in range(RUNS):
+            tik = time.time()
+
             futs = []
             for rref in rrefs:
                 futs.append(
@@ -179,15 +183,16 @@ def run(rank):
                         args=(rrefs,)
                     )
                 )
-
             c = []
             for fut in futs:
                 c.append(fut.wait())
 
-        tok_ = time.time()
+            tok = time.time()
+            print(f'Run {i},  Time = {(tok - tik):.3f}s')
 
+        tok_ = time.time()
         print(f'Random walk summary:\n {torch.cat(c, dim=0)}')
-        print(f'Avg Inner Execution time = {(tok_ - tik_)/RUNS:.3f}s')
+        print(f'Avg Execution time = {(tok_ - tik_)/RUNS:.3f}s')
 
     rpc.shutdown()
 
@@ -202,4 +207,4 @@ if __name__ == '__main__':
     mp.spawn(run, nprocs=NUM_MACHINES, join=True)
     tok = time.time()
 
-    print(f'Outer Execution time = {tok - tik:.3}s')
+    print(f'Total Execution time = {tok - tik:.3}s')

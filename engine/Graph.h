@@ -15,6 +15,7 @@
 
 typedef int VertexType;
 typedef int EdgeType;
+typedef int ShardType;
 #define SIZE 100
 
 template <class VertexProp, class EdgeProp> class Graph{
@@ -76,6 +77,7 @@ template <class VertexProp, class EdgeProp> class Graph{
 
         // Sampling
         std::tuple<torch::Tensor, std::map<int, torch::Tensor>> sampleSingleNeighbor(const torch::Tensor &srcVertexIDs_);  // return {localIDs, shardIndexMap}
+        std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> sampleSingleNeighbor2(const torch::Tensor &srcVertexIDs_);
 };
 
 #endif

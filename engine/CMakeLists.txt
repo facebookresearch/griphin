@@ -3,6 +3,12 @@ project(engine)
 
 set(CMAKE_CXX_STANDARD 14)
 
+find_package(OpenMP)
+if (OPENMP_FOUND)
+    set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+endif()
+
 add_executable(engine
         EdgeProp.cpp
         EdgeProp.h
@@ -10,7 +16,6 @@ add_executable(engine
         Graph.h
         VertexProp.cpp
         VertexProp.h
-        bindings.cpp
         main.cpp)
 
 
