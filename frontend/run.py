@@ -29,10 +29,11 @@ parser.add_argument('--num_root', type=int, default=8192, help='number of root n
 parser.add_argument('--walk_length', type=int, default=15, help='walk length')
 parser.add_argument('--worker_name', type=str, default='worker{}', help='name of workers, formatted by rank')
 parser.add_argument('--file_path', type=str, default=default_file_path, help='path to dataset')
-parser.add_argument('--rw_version', type=int, default=1, help='version of random walk implementation')
+parser.add_argument('--rw_version', type=int, default=2, help='version of random walk implementation')
 parser.add_argument('--profile', action='store_true', help='whether to use torch.profile to profile program. '
                                                            'Note: this will create overheads and slow down program.')
 parser.add_argument('--profile_prefix', type=str, default='tb_log/', help='path to profiling log')
+parser.add_argument('--log', action='store_true', help='whether to log breakdown runtime. ')
 
 
 def run(rank, args):
@@ -71,7 +72,7 @@ def run(rank, args):
                         rref.owner(),
                         rw_func_dict[args.rw_version],
                         args=(rrefs, args.num_machine, args.num_root, args.walk_length, profile,
-                              '{}/{}'.format(args.profile_prefix, rref.owner()))
+                              '{}/{}'.format(args.profile_prefix, rref.owner()), args.log)
                     )
                 )
             c = []

@@ -46,7 +46,7 @@ int main(){
     int x = shard0.getNumOfVertices();
     x = shard0.getNumOfHaloVertices();
     VertexProp v = shard0.findVertex(10);
-    std::vector<int> neighbors = shard0.getNeighbors(10);
+    std::vector<VertexType> neighbors = shard0.getNeighbors(10);
     for(int i = 0; i < neighbors.size(); i ++){
         printf("%d - ", neighbors[i]);
     }

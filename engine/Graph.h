@@ -7,51 +7,46 @@
 #include <ctime>
 #include <vector>
 #include <algorithm>
-#include <stdint.h>
+#include <cstdint>
 #include <map>
 #include <torch/extension.h>
+#include "global.h"
 #include "EdgeProp.h"
 #include "VertexProp.h"
 
-typedef int VertexType;
-typedef int EdgeType;
-typedef int ShardType;
-#define SIZE 100
-
 template <class VertexProp, class EdgeProp> class Graph{
     private:
-        int shardID;
+        ShardType shardID;
 
         std::vector<VertexProp> vertexProps;
         //std::vector<EdgeProp> edgeProps;
 
-        VertexType numNodes;
-        VertexType numCoreNodes;
-        VertexType numHaloNodes;
-        EdgeType numEdges;
+        int64_t numNodes;
+        int64_t numCoreNodes;
+        int64_t numHaloNodes;
+        int64_t numEdges;
 
         std::vector<VertexType> nodeIDs;
-        std::vector<int> haloNodeShards;
+        std::vector<ShardType> haloNodeShards;
         std::vector<VertexType> csrIndices;
-        std::vector<VertexType> csrShardIndices;
-        std::vector<VertexType> csrIndptrs;
+        std::vector<ShardType> csrShardIndices;
+        std::vector<EdgeType> csrIndptrs;
         std::vector<VertexType> partitionBook;
 
-
     public:
-        Graph(int shardID_, char *idsList, char *haloShardsList, char *csrIndicesFile, char *csrShardIndicesFile, char *csrIndPtrsFile, char *partitionBookFile);  // takes shards as the argument
+        Graph(ShardType shardID_, const char *idsListFile, const char *haloShardsListFile, const char *csrIndicesFile, const char *csrShardIndicesFile, const char *csrIndPtrsFile, const char *partitionBookFile);  // takes shards as the argument
         ~Graph();
 
         std::vector<VertexType> getPartitionBook();
 
         // Query
-        int getNumOfVertices();
-        int getNumOfCoreVertices();
-        int getNumOfHaloVertices();
+        int64_t getNumOfVertices();
+        int64_t getNumOfCoreVertices();
+        int64_t getNumOfHaloVertices();
         VertexProp findVertex(VertexType vertexID);          // returns local id in the current shard based on given global id
 
-        std::vector<int> getNeighbors(VertexType vertexID);
-        std::vector<int> getNeighborShards(VertexType vertexID);
+        std::vector<VertexType> getNeighbors(VertexType vertexID);
+        std::vector<ShardType> getNeighborShards(VertexType vertexID);
 
         bool findVertexLocking(VertexType localVertexID);          // i did not understand what are the locks used for but i am assuming this function returns true if the given node is locked
         VertexProp findVertexProp(VertexType localVertexID);       // returns the vertex properties of given local vertex ID
@@ -60,7 +55,7 @@ template <class VertexProp, class EdgeProp> class Graph{
         // Graph Mutation
         bool addVertex(VertexProp vertex);                                      // adds vertex to the shard
         bool addVertexLocking(VertexType localVertexID);                        // locks the given vertex
-        bool addBatchVertexLocking(std::vector<VertexType> localVertexIDs);     // locks all the vertices in the vector
+        bool addBatchVertexLocking(const std::vector<VertexType>& localVertexIDs);     // locks all the vertices in the vector
 
         bool findVertexAndUpdatePropertyLocking(VertexType globalVertexID, bool lock=1);     // uses findVertex and updates the locking
 
@@ -74,7 +69,7 @@ template <class VertexProp, class EdgeProp> class Graph{
         bool deleteEdge(EdgeType localEdgeID);
 
         // Sampling
-        std::tuple<torch::Tensor, std::map<int, torch::Tensor>> sampleSingleNeighbor(const torch::Tensor &srcVertexIDs_);  // return {localIDs, shardIndexMap}
+        std::tuple<torch::Tensor, std::map<ShardType, torch::Tensor>> sampleSingleNeighbor(const torch::Tensor &srcVertexIDs_);  // return {localIDs, shardIndexMap}
         std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> sampleSingleNeighbor2(const torch::Tensor &srcVertexIDs_);
 };
 

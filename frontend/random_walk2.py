@@ -8,16 +8,7 @@ from torch.distributed import rpc
 from graph import GraphShard, VERTEX_ID_TYPE, SHARD_ID_TYPE
 
 
-def init_rpc(shard_rrefs):
-    futs = []
-    for ref in shard_rrefs:
-        shard: GraphShard = ref.rpc_async()
-        futs.append(shard.get_dict_tensor(torch.rand(200)))
-    for fut in futs:
-        fut.wait()
-
-
-def random_walk2(shard_rrefs, num_machines, num_roots, walk_length, profile, profile_prefix):
+def random_walk2(shard_rrefs, num_machines, num_roots, walk_length, profile, profile_prefix, log=False):
     """Kernel Function of Distributed Random Walk
 
     :param shard_rrefs: Reference list of remote graph shards.
@@ -26,6 +17,7 @@ def random_walk2(shard_rrefs, num_machines, num_roots, walk_length, profile, pro
     :param walk_length: Length of random walks.
     :param profile:
     :param profile_prefix:
+    :param log:
     :return: walk_summary
     """
 
@@ -42,7 +34,8 @@ def random_walk2(shard_rrefs, num_machines, num_roots, walk_length, profile, pro
         root_nodes = torch.randperm(local_shard.num_core_nodes, dtype=VERTEX_ID_TYPE)[:num_roots]
 
         # init walks summary with size (num_roots, walk_length+1)
-        walks_summary = torch.full((num_roots, walk_length + 1), -1, dtype=root_nodes.dtype)
+        # walks_summary = torch.full((num_roots, walk_length + 1), -1, dtype=root_nodes.dtype)
+        walks_summary = torch.empty((num_roots, walk_length + 1), dtype=root_nodes.dtype)
         walks_summary[:, 0] = local_shard.to_global(root_nodes)
 
         # init node ID tensor "u" of current step
@@ -173,11 +166,12 @@ def random_walk2(shard_rrefs, num_machines, num_roots, walk_length, profile, pro
             if profile:
                 profiler.step()
 
-    print(f"Rank {rank} Avg. for Part 1: {sum(part1):.3f} \n")
-    print(f"Rank {rank} Avg. for Part 2: {sum(part2):.3f} \n")
-    print(f"Rank {rank} Avg. for Part 3: {sum(part3):.3f} \n")
-    print(f"Rank {rank} Avg. for Part 2_1: {sum(part2_1):.3f} \n")
-    print(f"Rank {rank} Avg. for Part 2_2: {sum(part2_2):.3f} \n")
-    print("****")
+    if log:
+        print(f"Rank {rank} Sum for Part 1: {sum(part1):.3f} \n")
+        print(f"Rank {rank} Sum for Part 2: {sum(part2):.3f} \n")
+        print(f"Rank {rank} Sum for Part 3: {sum(part3):.3f} \n")
+        print(f"Rank {rank} Sum for Part 2_1: {sum(part2_1):.3f} \n")
+        print(f"Rank {rank} Sum for Part 2_2: {sum(part2_2):.3f} \n")
+        print("****\n")
 
     return walks_summary

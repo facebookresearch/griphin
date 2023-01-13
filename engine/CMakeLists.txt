@@ -16,7 +16,7 @@ add_executable(engine
         Graph.h
         VertexProp.cpp
         VertexProp.h
-        main.cpp)
+        main.cpp global.h)
 
 
 set(CMAKE_PREFIX_PATH /Users/synapse/opt/anaconda3/envs/pytorch-graph/lib/python3.9/site-packages/torch/share/cmake)

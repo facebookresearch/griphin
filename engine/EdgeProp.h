@@ -5,10 +5,8 @@
 #include <string>
 #include <ctime>
 #include <vector>
-#include <stdint.h>
-
-typedef int EdgeType;   
-typedef int VertexType;   
+#include <cstdint>
+#include "global.h"
 
 class EdgeProp{
     public:
@@ -17,6 +15,5 @@ class EdgeProp{
         std::vector<float> edgeData;
         std::vector<VertexType> neighborNodes;
 };
-
 
 #endif 

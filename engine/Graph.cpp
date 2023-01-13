@@ -1,11 +1,19 @@
 #include <iostream>
 #include <vector>
+#include <ctime>
 #include <omp.h>
 #include "Graph.h"
 #include "utils.h"
 
 template <class VertexProp, class EdgeProp>
-    Graph<VertexProp, EdgeProp>::Graph(int shardID_, char *idsList, char *haloShardsList, char *csrIndicesFile, char *csrShardIndicesFile, char *csrIndPtrsFile, char *partitionBookFile){  // takes shards as the argument
+    Graph<VertexProp, EdgeProp>::Graph(const ShardType shardID_,
+                                       const char *idsListFile,
+                                       const char *haloShardsListFile,
+                                       const char *csrIndicesFile,
+                                       const char *csrShardIndicesFile,
+                                       const char *csrIndPtrsFile,
+                                       const char *partitionBookFile
+                                       ){
     shardID = shardID_;
 
     numCoreNodes = 0;
@@ -13,12 +21,12 @@ template <class VertexProp, class EdgeProp>
     numNodes = 0;
     numEdges = 0;
 
-    int dummy = 0;
+    int64_t dummy = 0;
 
     std::string line;
 
     /*
-       idsList contains the numbers with the following format:
+       idsListFile contains the numbers with the following format:
        for shard 0 -> from 0 to |core vertices in current shard| - 1 and then halo vertices with their original ids in their original shards
        for shard 0 -> from |core vertices in prev. shard| - 1 to |core vertices in current shard| and then halo vertices with their original ids in their original shards
        we initially planned to start from 0 in each shard. However, it required us to keep <shard_id, vertex_id> pair for edges as there might be vertices with the same vertex_id
@@ -26,14 +34,12 @@ template <class VertexProp, class EdgeProp>
     */
     readFile(partitionBookFile, &partitionBook, &dummy);
 
-    readFile(idsList, &nodeIDs, &numNodes);
+    readFile(idsListFile, &nodeIDs, &numNodes);
 
     // reads the shard ids of the halo vertices.
-    readFile(haloShardsList, &haloNodeShards, &numHaloNodes);
+    readFile(haloShardsListFile, &haloNodeShards, &numHaloNodes);
 
-    numCoreNodes = numNodes - numHaloNodes; 
-
-    //int offset = partitionBook[shardID];
+    numCoreNodes = numNodes - numHaloNodes;
 
     // read the csr indices file
     readFile(csrIndicesFile, &csrIndices, &dummy);
@@ -44,12 +50,11 @@ template <class VertexProp, class EdgeProp>
     // read the csr indptrs file
     readFile(csrIndPtrsFile, &csrIndptrs, &dummy);
 
-    for(int i = 0; i < numCoreNodes; i++){
-        int neighborStartIndex = csrIndptrs[i];
-        int neighborEndIndex = csrIndptrs[i+1];
+    for(VertexType i = 0; i < numCoreNodes; i++){
+        auto neighborStartIndex = csrIndptrs[i];
+        auto neighborEndIndex = csrIndptrs[i+1];
         vertexProps.push_back(VertexProp(i, shardID, neighborStartIndex, neighborEndIndex));
     }
-
 }
 
 template<class VertexProp, class EdgeProp>
@@ -63,20 +68,20 @@ VertexProp Graph<VertexProp, EdgeProp>::findVertex(VertexType vertexID){
 } 
 
 template <class VertexProp, class EdgeProp>
-std::vector<int> Graph<VertexProp, EdgeProp>::getNeighbors(VertexType vertexID){
-    std::vector<int> neighbors;
-    int neighborStartIndex = csrIndptrs[vertexID];
-    int neighborEndIndex = csrIndptrs[vertexID+1];
+std::vector<VertexType> Graph<VertexProp, EdgeProp>::getNeighbors(VertexType vertexID){
+    std::vector<VertexType> neighbors;
+    auto neighborStartIndex = csrIndptrs[vertexID];
+    auto neighborEndIndex = csrIndptrs[vertexID+1];
 
-    for(int i = neighborStartIndex; i < neighborEndIndex; i++){
+    for(auto i = neighborStartIndex; i < neighborEndIndex; i++){
         neighbors.push_back(csrIndices[i]);
     }
     return neighbors;
 }
 
 template <class VertexProp, class EdgeProp>
-std::vector<int> Graph<VertexProp, EdgeProp>::getNeighborShards(VertexType vertexID){
-    std::vector<int> neighborShards;
+std::vector<ShardType> Graph<VertexProp, EdgeProp>::getNeighborShards(VertexType vertexID){
+    std::vector<ShardType> neighborShards;
     int neighborStartIndex = csrIndptrs[vertexID];
     int neighborEndIndex = csrIndptrs[vertexID+1];
 
@@ -91,19 +96,19 @@ Graph<VertexProp, EdgeProp>::~Graph(){
 }
 
 template <class VertexProp, class EdgeProp>
-int Graph<VertexProp, EdgeProp>::getNumOfVertices(){
+int64_t Graph<VertexProp, EdgeProp>::getNumOfVertices(){
 //    printf("Num of Nodes: %d\n", numNodes);
     return numNodes;
 }
 
 template <class VertexProp, class EdgeProp>
-int Graph<VertexProp, EdgeProp>::getNumOfCoreVertices(){
+int64_t Graph<VertexProp, EdgeProp>::getNumOfCoreVertices(){
 //    printf("Num of Core Nodes: %d\n", numCoreNodes);
     return numCoreNodes;
 }
 
 template <class VertexProp, class EdgeProp>
-int Graph<VertexProp, EdgeProp>::getNumOfHaloVertices(){
+int64_t Graph<VertexProp, EdgeProp>::getNumOfHaloVertices(){
 //    printf("Num of Halo Nodes: %d\n", numHaloNodes);
     return numHaloNodes;
 }
@@ -130,56 +135,48 @@ bool Graph<VertexProp, EdgeProp>::addVertexLocking(VertexType localVertexID){
 }
 
 template <class VertexProp, class EdgeProp> 
-bool Graph<VertexProp, EdgeProp>::addBatchVertexLocking(std::vector<VertexType> localVertexIDs){
-    for(auto it = localVertexIDs.begin(); it != localVertexIDs.end(); ++it){
-        vertexProps[*it].setLocking();
+bool Graph<VertexProp, EdgeProp>::addBatchVertexLocking(const std::vector<VertexType>& localVertexIDs){
+    for(auto localVertexID: localVertexIDs){
+        vertexProps[localVertexID].setLocking();
     }
     return true;
 }
 
 template<class VertexProp, class EdgeProp>
-std::tuple<torch::Tensor, std::map<int, torch::Tensor>>
+std::tuple<torch::Tensor, std::map<ShardType, torch::Tensor>>
 Graph<VertexProp, EdgeProp>::sampleSingleNeighbor(const torch::Tensor& srcVertexIDs_) {
     int64_t len = srcVertexIDs_.numel();
     torch::Tensor srcVertexIDs = srcVertexIDs_.contiguous();
     const VertexType* srcVertexPtr = srcVertexIDs.data_ptr<VertexType>();
 
     auto* sampledVertices_ = new VertexType[len];  // to avoid copy, we need to allocate memory for sampled Vertices
-    std::map<int, std::vector<int64_t>*> shardIndexMap_;
+    std::map<ShardType, std::vector<int64_t>*> shardIndexMap_;
 
     std::random_device r;
     std::default_random_engine e(r());
 
-    // TODO: fine grain parallelization
     for (int64_t i=0; i < len; i++) {
-        //printf("source: %d - num of core: %d\n", srcVertexPtr[i], getNumOfCoreVertices());
         VertexProp prop = findVertex(srcVertexPtr[i]);
-        int neighborStartIndex = prop.getNeighborStartIndex();
-        int neighborEndIndex = prop.getNeighborEndIndex();
-        int size = neighborEndIndex - neighborStartIndex;
-        //printf("neighbor size: %d \n", neighbors.size());
-        // for(int i = 0; i < neighbors.size(); i++){
-        //     printf("%d - %d ** ", neighbors[i], neighborShards[i]);
-        // }
-        //printf("\n");
+        auto neighborStartIndex = prop.getNeighborStartIndex();
+        auto neighborEndIndex = prop.getNeighborEndIndex();
+        auto size = neighborEndIndex - neighborStartIndex;
 
-
-        int neighborShardID;
+        VertexType neighborID;
+        ShardType neighborShardID;
 
         if (size == 0) {
-            VertexType neighborID = prop.getNodeId();
-            sampledVertices_[i] = neighborID;
+            neighborID = prop.getNodeId();
             neighborShardID = prop.shardID;
         }
         else{
             std::uniform_int_distribution<int> uniform_dist(0, size-1);
-            int rand = uniform_dist(e);
+            auto rand = uniform_dist(e);
 
-            VertexType neighborID = csrIndices[neighborStartIndex + rand];
-            sampledVertices_[i] = neighborID;
-
+            neighborID = csrIndices[neighborStartIndex + rand];
             neighborShardID = csrShardIndices[neighborStartIndex + rand];
         }
+
+        sampledVertices_[i] = neighborID;
 
         //printf("chosen neighbor for i = %d - %d - %d \n\n", i, neighborID, neighborShardID);
 
@@ -191,9 +188,8 @@ Graph<VertexProp, EdgeProp>::sampleSingleNeighbor(const torch::Tensor& srcVertex
     }
 
     auto opts = srcVertexIDs_.options();
-    torch::Tensor sampledVertices = torch::from_blob(
-            sampledVertices_, {len}, opts);  // from_blob() does not make a copy
-    std::map<int, torch::Tensor> shardIndexMap;
+    torch::Tensor sampledVertices = torch::from_blob(sampledVertices_, {len}, opts);
+    std::map<ShardType, torch::Tensor> shardIndexMap;
     for (auto & it : shardIndexMap_) {
         shardIndexMap[it.first] = torch::from_blob(
                 it.second->data(), {(int64_t)it.second->size()}, torch::kInt64);
@@ -209,45 +205,57 @@ Graph<VertexProp, EdgeProp>::sampleSingleNeighbor2(const torch::Tensor& srcVerte
     torch::Tensor srcVertexIDs = srcVertexIDs_.contiguous();
     const VertexType* srcVertexPtr = srcVertexIDs.data_ptr<VertexType>();
 
-    // to avoid copy, we need to allocate memory for sampled Vertices
+    // allocate memory for sampled vertices to avoid copy
     auto* localVertexIDs_ = new VertexType[len];
     auto* globalVertexIDs_ = new VertexType[len];
     auto* shardIDs_ = new ShardType[len];
 
-    std::random_device r;
-    std::default_random_engine e(r());
+    // TODO:
+    int numThreads;
+    if (len > 200) {
+        numThreads = 1;
+    } else {
+        numThreads = 1;
+    }
 
-    #pragma omp parallel for schedule(static) default(none) shared(e, len, srcVertexPtr, localVertexIDs_, globalVertexIDs_, shardIDs_)
-    for (int64_t i=0; i < len; i++) {
-        VertexProp prop = findVertex(srcVertexPtr[i]);
-        int neighborStartIndex = prop.getNeighborStartIndex();
-        int neighborEndIndex = prop.getNeighborEndIndex();
-        int size = neighborEndIndex - neighborStartIndex;
+    #pragma omp parallel num_threads(numThreads) default(none) shared(len, srcVertexPtr, localVertexIDs_, globalVertexIDs_, shardIDs_)
+    {
+//        std::random_device dev;
+//        std::mt19937_64 rng(dev());
+        std::mt19937_64 rng((omp_get_thread_num() + 1) * time(nullptr));
 
-        VertexType neighborID;
-        ShardType neighborShardID;
+        #pragma omp for
+        for (int64_t i=0; i < len; i++) {
+            VertexProp prop = findVertex(srcVertexPtr[i]);
+            auto neighborStartIndex = prop.getNeighborStartIndex();
+            auto neighborEndIndex = prop.getNeighborEndIndex();
+            auto size = neighborEndIndex - neighborStartIndex;
 
-        if (size == 0) {
-            neighborID = prop.getNodeId();
-            neighborShardID = prop.shardID;
+            VertexType neighborID;
+            ShardType neighborShardID;
+
+            if (size == 0) {
+                neighborID = prop.getNodeId();
+                neighborShardID = prop.shardID;
+            }
+            else {
+                std::uniform_int_distribution<int> uniform_dist(0, size-1);
+                auto rand = uniform_dist(rng);
+
+                neighborID = csrIndices[neighborStartIndex + rand];
+                neighborShardID = csrShardIndices[neighborStartIndex + rand];
+            }
+
+            localVertexIDs_[i] = neighborID;
+            globalVertexIDs_[i] = neighborID + partitionBook[neighborShardID];
+            shardIDs_[i] = neighborShardID;
         }
-        else {
-            std::uniform_int_distribution<int> uniform_dist(0, size-1);
-            int rand = uniform_dist(e);
-//            auto rand = uniform_randint((int)prop.neighborVertices->size());
-            neighborID = csrIndices[neighborStartIndex + rand];;
-            neighborShardID = csrShardIndices[neighborStartIndex + rand];
-        }
-
-        localVertexIDs_[i] = neighborID;
-        globalVertexIDs_[i] = neighborID + partitionBook[neighborShardID];
-        shardIDs_[i] = neighborShardID;
     }
 
     auto opts = srcVertexIDs_.options();
     torch::Tensor localVertexIDs = torch::from_blob(localVertexIDs_, {len}, opts);
     torch::Tensor globalVertexIDs = torch::from_blob(globalVertexIDs_, {len}, opts);
-    torch::Tensor shardIDs = torch::from_blob(shardIDs_, {len}, opts);
+    torch::Tensor shardIDs = torch::from_blob(shardIDs_, {len}, torch::kInt8);  // hard code
 
     return {localVertexIDs, globalVertexIDs, shardIDs};
 }

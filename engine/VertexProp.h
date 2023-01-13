@@ -4,28 +4,25 @@
 #include <iostream>
 #include <vector>
 #include <string>
-
-typedef int VertexType;    
-typedef int EdgeType;    
-#define PROP_SIZE 200
+#include "global.h"
 
 class VertexProp{
     public:
-        VertexProp(int vertexID_, int shardID_, int neighborStartIndex_, int neighborEndIndex_);
+        VertexProp(VertexType vertexID_, ShardType shardID_, EdgeType neighborStartIndex_, EdgeType neighborEndIndex_);
         VertexType vertexID;
-        int shardID;
+        ShardType shardID;
         int neighborCount;
-        int neighborStartIndex;
-        int neighborEndIndex;
+        EdgeType neighborStartIndex;
+        EdgeType neighborEndIndex;
         bool isLocked;
         std::vector<float> vertexData;
         // std::vector<VertexType> *neighborVertices = new std::vector<VertexType>;
         // std::vector<int> *neighborVerticeShards = new std::vector<int>;
         // std::vector<EdgeType> neighborEdges;
         VertexType getNodeId();
-        int getShard();
-        int getNeighborStartIndex();
-        int getNeighborEndIndex();
+        ShardType getShardId();
+        EdgeType getNeighborStartIndex();
+        EdgeType getNeighborEndIndex();
         bool addNeighbor(VertexType neighborId, int neighborShardId);
         void getNeighbors();
         void getShardsOfNeighbors();
@@ -33,6 +30,5 @@ class VertexProp{
         bool getLocking();
         bool setLocking(bool b);
 };
-
 
 #endif

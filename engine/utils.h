@@ -14,7 +14,8 @@ inline int uniform_randint(int high) {
     return uniform_randint(0, high);
 }
 
-inline void readFile(char *fileName, std::vector<VertexType> *vec, int *counter){
+template <class T>
+inline void readFile(const char *fileName, std::vector<T> *vec, int64_t *counter){
     std::string line;
 
     std::ifstream file(fileName);

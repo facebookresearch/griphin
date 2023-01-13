@@ -76,7 +76,8 @@ def random_walk(walker_rrefs):
     # cluster_ptr = torch.tensor([0, 613761, 1236365, 1838296, 2449029])  # TODO: ogbn_products
     cluster_ptr = torch.tensor([0, 14997, 30413, 46108, 613761])  # TODO: ogbn_products 1/40
     root_nodes = torch.randperm(batch_size)[:NUM_ROOTS]
-    walks_summary = torch.full((NUM_ROOTS, NUM_WALKS + 1), -1)
+    # walks_summary = torch.full((NUM_ROOTS, NUM_WALKS + 1), -1)
+    walks_summary = torch.empty((NUM_ROOTS, NUM_WALKS + 1), dtype=root_nodes.dtype)
     walks_summary[:, 0] = walker.to_global(root_nodes)
 
     # source nodes u, target nodes v

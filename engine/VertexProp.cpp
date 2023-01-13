@@ -1,7 +1,7 @@
 #include <iostream>
 #include "VertexProp.h"
 
-VertexProp::VertexProp(int vertexID_, int shardID_, int neighborStartIndex_, int neighborEndIndex_) {
+VertexProp::VertexProp(VertexType vertexID_, ShardType shardID_, EdgeType neighborStartIndex_, EdgeType neighborEndIndex_) {
     vertexID = vertexID_;
     shardID = shardID_;
     neighborStartIndex = neighborStartIndex_;
@@ -22,15 +22,15 @@ VertexType VertexProp::getNodeId(){
     return vertexID;
 }
 
-int VertexProp::getShard(){
+ShardType VertexProp::getShardId(){
     return shardID;
 }
 
-int VertexProp::getNeighborStartIndex(){
+EdgeType VertexProp::getNeighborStartIndex(){
     return neighborStartIndex;
 }
 
-int VertexProp::getNeighborEndIndex(){
+EdgeType VertexProp::getNeighborEndIndex(){
     return neighborEndIndex;
 }
 

@@ -17,7 +17,7 @@ def init_rpc(shard_rrefs):
         fut.wait()
 
 
-def random_walk(shard_rrefs, num_machines, num_roots, walk_length, profile, profile_prefix):
+def random_walk(shard_rrefs, num_machines, num_roots, walk_length, profile, profile_prefix, log=False):
     """Kernel Function of Distributed Random Walk
 
     :param shard_rrefs: Reference list of remote graph shards.
@@ -46,7 +46,8 @@ def random_walk(shard_rrefs, num_machines, num_roots, walk_length, profile, prof
         root_nodes = torch.randperm(local_shard.num_core_nodes, dtype=VERTEX_ID_TYPE)[:num_roots]
 
         # init walks summary with size (num_roots, walk_length+1)
-        walks_summary = torch.full((num_roots, walk_length + 1), -1, dtype=root_nodes.dtype)
+        # walks_summary = torch.full((num_roots, walk_length + 1), -1, dtype=root_nodes.dtype)
+        walks_summary = torch.empty((num_roots, walk_length + 1), dtype=root_nodes.dtype)
         walks_summary[:, 0] = local_shard.to_global(root_nodes)
 
         # init node ID tensor "u" of current step
@@ -204,12 +205,13 @@ def random_walk(shard_rrefs, num_machines, num_roots, walk_length, profile, prof
             if profile:
                 profiler.step()
 
-    print(f"Rank {rank} Avg. for Part 1: {sum(part1):.3f} \n")
-    print(f"Rank {rank} Avg. for Part 2: {sum(part2):.3f} \n")
-    print(f"Rank {rank} Avg. for Part 3: {sum(part3):.3f} \n")
-    print(f"Rank {rank} Avg. for Part 2_1: {sum(part2_1):.3f} \n")
-    print(f"Rank {rank} Avg. for Part 2_2: {sum(part2_2):.3f} \n")
-    print(f"Rank {rank} Avg. for Part 2_3: {sum(part2_3):.3f} \n")
-    print("****")
+    if log:
+        print(f"Rank {rank} Sum for Part 1: {sum(part1):.3f} \n")
+        print(f"Rank {rank} Sum for Part 2: {sum(part2):.3f} \n")
+        print(f"Rank {rank} Sum for Part 3: {sum(part3):.3f} \n")
+        print(f"Rank {rank} Sum for Part 2_1: {sum(part2_1):.3f} \n")
+        print(f"Rank {rank} Sum for Part 2_2: {sum(part2_2):.3f} \n")
+        print(f"Rank {rank} Sum for Part 2_3: {sum(part2_3):.3f} \n")
+        print("****\n")
 
     return walks_summary
