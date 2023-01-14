@@ -210,21 +210,14 @@ Graph<VertexProp, EdgeProp>::sampleSingleNeighbor2(const torch::Tensor& srcVerte
     auto* globalVertexIDs_ = new VertexType[len];
     auto* shardIDs_ = new ShardType[len];
 
-    // TODO:
-    int numThreads;
-    if (len > 200) {
-        numThreads = 1;
-    } else {
-        numThreads = 1;
-    }
-
-    #pragma omp parallel num_threads(numThreads) default(none) shared(len, srcVertexPtr, localVertexIDs_, globalVertexIDs_, shardIDs_)
+    // TODO: Dynamically control num_threads will lead to poor performance
+    #pragma omp parallel default(none) shared(len, srcVertexPtr, localVertexIDs_, globalVertexIDs_, shardIDs_)
     {
 //        std::random_device dev;
 //        std::mt19937_64 rng(dev());
         std::mt19937_64 rng((omp_get_thread_num() + 1) * time(nullptr));
 
-        #pragma omp for
+        #pragma omp for schedule(static)
         for (int64_t i=0; i < len; i++) {
             VertexProp prop = findVertex(srcVertexPtr[i]);
             auto neighborStartIndex = prop.getNeighborStartIndex();

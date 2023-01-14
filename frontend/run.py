@@ -21,7 +21,7 @@ from random_walk2 import random_walk2
 RUNS = 10
 WARMUP = 3
 
-default_file_path = os.path.join(get_root_path(), 'engine/ogbn_small_csr_format')
+default_file_path = os.path.join(get_root_path(), 'engine/ogbn_csr_format')
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--num_machine', type=int, default=4, help='number of machines (simulated as processes)')

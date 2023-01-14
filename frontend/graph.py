@@ -7,7 +7,7 @@ import os.path as osp
 from torch import Tensor
 
 VERTEX_ID_TYPE = torch.int32
-SHARD_ID_TYPE = torch.int32
+SHARD_ID_TYPE = torch.int8
 
 
 def init_graph(path, shard_id):
