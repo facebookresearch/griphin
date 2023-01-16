@@ -166,7 +166,7 @@ Graph<VertexProp, EdgeProp>::sampleSingleNeighbor(const torch::Tensor& srcVertex
             neighborShardID = prop.shardID;
         }
         else{
-            std::uniform_int_distribution<int> uniform_dist(0, prop.getNeighborCount() - 1);
+            std::uniform_int_distribution<int> uniform_dist(0, prop.getNeighborCount()-1);
             auto rand = uniform_dist(e);
 
             neighborID = prop.getNeighbor(rand);
@@ -226,7 +226,7 @@ Graph<VertexProp, EdgeProp>::sampleSingleNeighbor2(const torch::Tensor& srcVerte
                 neighborShardID = prop.shardID;
             }
             else {
-                std::uniform_int_distribution<int> uniform_dist(0, prop.getNeighborCount() - 1);
+                std::uniform_int_distribution<int> uniform_dist(0, prop.getNeighborCount()-1);
                 auto rand = uniform_dist(rng);
 
                 neighborID = prop.getNeighbor(rand);
