@@ -67,8 +67,6 @@ VertexProp Graph<VertexProp, EdgeProp>::findVertex(VertexType vertexID){
     return vertexProps[vertexID];
 } 
 
-<<<<<<< HEAD
-=======
 // template <class VertexProp, class EdgeProp>
 // std::vector<VertexType> Graph<VertexProp, EdgeProp>::getNeighbors(VertexType vertexID){
 //     std::vector<VertexType> neighbors;
@@ -93,7 +91,6 @@ VertexProp Graph<VertexProp, EdgeProp>::findVertex(VertexType vertexID){
 //     return neighborShards;
 // }
 
->>>>>>> d5d2e5092c3eb28700afd58d6c64e418fb2038da
 template <class VertexProp, class EdgeProp>
 Graph<VertexProp, EdgeProp>::~Graph(){
 }
@@ -169,7 +166,7 @@ Graph<VertexProp, EdgeProp>::sampleSingleNeighbor(const torch::Tensor& srcVertex
             neighborShardID = prop.shardID;
         }
         else{
-            std::uniform_int_distribution<int> uniform_dist(0, size-1);
+            std::uniform_int_distribution<int> uniform_dist(0, prop.getNeighborCount()-1);
             auto rand = uniform_dist(e);
 
             neighborID = prop.getNeighbor(rand);
@@ -178,11 +175,11 @@ Graph<VertexProp, EdgeProp>::sampleSingleNeighbor(const torch::Tensor& srcVertex
 
         sampledVertices_[i] = neighborID;
 
-        printf("chosen neighbor for i = %d - %d - %d \n\n", i, neighborID, neighborShardID);
+        //printf("chosen neighbor for i = %d - %d - %d \n\n", i, neighborID, neighborShardID);
 
         if (shardIndexMap_.find(neighborShardID) == shardIndexMap_.end()) {
             shardIndexMap_[neighborShardID] = new std::vector<int64_t>();  // allocate memory
-            printf("shard not found so creating \n\n");
+            //printf("shard not found so creating \n\n");
         }
         shardIndexMap_[neighborShardID]->push_back(i);
     }
@@ -205,7 +202,7 @@ Graph<VertexProp, EdgeProp>::sampleSingleNeighbor2(const torch::Tensor& srcVerte
     torch::Tensor srcVertexIDs = srcVertexIDs_.contiguous();
     const VertexType* srcVertexPtr = srcVertexIDs.data_ptr<VertexType>();
 
-    allocate memory for sampled vertices to avoid copy
+    // allocate memory for sampled vertices to avoid copy
     auto* localVertexIDs_ = new VertexType[len];
     auto* globalVertexIDs_ = new VertexType[len];
     auto* shardIDs_ = new ShardType[len];
@@ -213,8 +210,8 @@ Graph<VertexProp, EdgeProp>::sampleSingleNeighbor2(const torch::Tensor& srcVerte
     // TODO: Dynamically control num_threads will lead to poor performance
     #pragma omp parallel default(none) shared(len, srcVertexPtr, localVertexIDs_, globalVertexIDs_, shardIDs_)
     {
-       std::random_device dev;
-       std::mt19937_64 rng(dev());
+//        std::random_device dev;
+//        std::mt19937_64 rng(dev());
         std::mt19937_64 rng((omp_get_thread_num() + 1) * time(nullptr));
 
         #pragma omp for schedule(static)
@@ -229,7 +226,7 @@ Graph<VertexProp, EdgeProp>::sampleSingleNeighbor2(const torch::Tensor& srcVerte
                 neighborShardID = prop.shardID;
             }
             else {
-                std::uniform_int_distribution<int> uniform_dist(0, size-1);
+                std::uniform_int_distribution<int> uniform_dist(0, prop.getNeighborCount()-1);
                 auto rand = uniform_dist(rng);
 
                 neighborID = prop.getNeighbor(rand);
