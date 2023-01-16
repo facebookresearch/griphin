@@ -17,7 +17,7 @@ from random_walk2 import random_walk2
 # NUM_ROOTS = 8192
 # WALK_LENGTH = 15
 # WORKER_NAME = 'worker{}'
-# FILE_PATH = 'engine/ogbn_files_txt_small'
+# FILE_PATH = 'engine/ogbn_small_csr_format'
 RUNS = 10
 WARMUP = 3
 
