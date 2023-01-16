@@ -43,7 +43,7 @@ template <class VertexProp, class EdgeProp> class Graph{
         int64_t getNumOfVertices();
         int64_t getNumOfCoreVertices();
         int64_t getNumOfHaloVertices();
-        int64_t findVertex(VertexType vertexID);          // returns local id in the current shard based on given global id
+        VertexProp findVertex(VertexType vertexID);          // returns local id in the current shard based on given global id
 
         bool findVertexLocking(VertexType localVertexID);          // i did not understand what are the locks used for but i am assuming this function returns true if the given node is locked
         VertexProp findVertexProp(VertexType localVertexID);       // returns the vertex properties of given local vertex ID
