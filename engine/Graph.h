@@ -9,7 +9,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <map>
-#include <torch/extension.h>
+// #include <torch/extension.h>
 #include "global.h"
 #include "EdgeProp.h"
 #include "VertexProp.h"
@@ -66,8 +66,8 @@ template <class VertexProp, class EdgeProp> class Graph{
         bool deleteEdge(EdgeType localEdgeID);
 
         // Sampling
-        std::tuple<torch::Tensor, std::map<ShardType, torch::Tensor>> sampleSingleNeighbor(const torch::Tensor &srcVertexIDs_);  // return {localIDs, shardIndexMap}
-        std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> sampleSingleNeighbor2(const torch::Tensor &srcVertexIDs_);
+        // std::tuple<torch::Tensor, std::map<ShardType, torch::Tensor>> sampleSingleNeighbor(const torch::Tensor &srcVertexIDs_);  // return {localIDs, shardIndexMap}
+        // std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> sampleSingleNeighbor2(const torch::Tensor &srcVertexIDs_);
 };
 
 #endif

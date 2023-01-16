@@ -46,8 +46,8 @@ int main(){
     int x = shard0.getNumOfVertices();
     x = shard0.getNumOfHaloVertices();
     VertexProp v = shard0.findVertex(10);
-    // std::vector<VertexType> neighbors = shard0.getNeighbors(10);
-    for(int i = 0; i < neighbors.size(); i ++){
+    VertexType* neighbors = v.getIndicesPtr();
+    for(int i = 0; i < v.getNeighborCount(); i ++){
         printf("%d - ", neighbors[i]);
     }
 
@@ -56,30 +56,18 @@ int main(){
     x = shard1.getNumOfVertices();
     x = shard1.getNumOfHaloVertices();
     v = shard1.findVertex(120);
-    // neighbors = shard1.getNeighbors(120);
-    for(int i = 0; i < neighbors.size(); i ++){
-        printf("%d - ", neighbors[i]);
-    }
+
     printf("\n\n");
 
     x = shard2.getNumOfVertices();
     x = shard2.getNumOfHaloVertices();
     v =shard2.findVertex(330);
-    // neighbors = shard2.getNeighbors(330);
-    for(int i = 0; i < neighbors.size(); i ++){
-        printf("%d - ", neighbors[i]);
-    }
 
     printf("\n\n");
 
     x = shard3.getNumOfVertices();
     x = shard3.getNumOfHaloVertices();
     v = shard3.findVertex(240);
-    // neighbors = shard3.getNeighbors(240);
-    for(int i = 0; i < neighbors.size(); i ++){
-        printf("%d - ", neighbors[i]);
-    }
-    printf("\n\n");
 
     return 0;
 }
