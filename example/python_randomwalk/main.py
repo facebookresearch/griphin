@@ -41,7 +41,8 @@ class Walker:
         return self._batch_size
 
     def load_sub_data(self):
-        filename_ = f'partition_40_{NUM_MACHINES}_{self.id}.pt'
+        filename_ = f'partition_{NUM_MACHINES}_{self.id}.pt'
+        # filename_ = f'partition_40_{NUM_MACHINES}_{self.id}.pt'
         path_ = osp.join(PROCESSED_DIR, filename_)
         return torch.load(path_)
 
@@ -73,8 +74,8 @@ def random_walk(walker_rrefs):
     walker = walker_rrefs[rank].to_here()
 
     batch_size = walker.batch_size
-    # cluster_ptr = torch.tensor([0, 613761, 1236365, 1838296, 2449029])  # TODO: ogbn_products
-    cluster_ptr = torch.tensor([0, 14997, 30413, 46108, 613761])  # TODO: ogbn_products 1/40
+    cluster_ptr = torch.tensor([0, 613761, 1236365, 1838296, 2449029])  # TODO: ogbn_products
+    # cluster_ptr = torch.tensor([0, 14997, 30413, 46108, 613761])  # TODO: ogbn_products 1/40
     root_nodes = torch.randperm(batch_size)[:NUM_ROOTS]
     # walks_summary = torch.full((NUM_ROOTS, NUM_WALKS + 1), -1)
     walks_summary = torch.empty((NUM_ROOTS, NUM_WALKS + 1), dtype=root_nodes.dtype)

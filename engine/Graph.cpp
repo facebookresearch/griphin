@@ -67,6 +67,33 @@ VertexProp Graph<VertexProp, EdgeProp>::findVertex(VertexType vertexID){
     return vertexProps[vertexID];
 } 
 
+<<<<<<< HEAD
+=======
+// template <class VertexProp, class EdgeProp>
+// std::vector<VertexType> Graph<VertexProp, EdgeProp>::getNeighbors(VertexType vertexID){
+//     std::vector<VertexType> neighbors;
+//     auto neighborStartIndex = csrIndptrs[vertexID];
+//     auto neighborEndIndex = csrIndptrs[vertexID+1];
+
+//     for(auto i = neighborStartIndex; i < neighborEndIndex; i++){
+//         neighbors.push_back(csrIndices[i]);
+//     }
+//     return neighbors;
+// }
+
+// template <class VertexProp, class EdgeProp>
+// std::vector<ShardType> Graph<VertexProp, EdgeProp>::getNeighborShards(VertexType vertexID){
+//     std::vector<ShardType> neighborShards;
+//     int neighborStartIndex = csrIndptrs[vertexID];
+//     int neighborEndIndex = csrIndptrs[vertexID+1];
+
+//     for(int i = neighborStartIndex; i < neighborEndIndex; i++){
+//         neighborShards.push_back(csrShardIndices[i]);
+//     }
+//     return neighborShards;
+// }
+
+>>>>>>> d5d2e5092c3eb28700afd58d6c64e418fb2038da
 template <class VertexProp, class EdgeProp>
 Graph<VertexProp, EdgeProp>::~Graph(){
 }
@@ -183,21 +210,14 @@ Graph<VertexProp, EdgeProp>::sampleSingleNeighbor2(const torch::Tensor& srcVerte
     auto* globalVertexIDs_ = new VertexType[len];
     auto* shardIDs_ = new ShardType[len];
 
-    TODO:
-    int numThreads;
-    if (len > 200) {
-        numThreads = 1;
-    } else {
-        numThreads = 1;
-    }
-
-    #pragma omp parallel num_threads(numThreads) default(none) shared(len, srcVertexPtr, localVertexIDs_, globalVertexIDs_, shardIDs_)
+    // TODO: Dynamically control num_threads will lead to poor performance
+    #pragma omp parallel default(none) shared(len, srcVertexPtr, localVertexIDs_, globalVertexIDs_, shardIDs_)
     {
        std::random_device dev;
        std::mt19937_64 rng(dev());
         std::mt19937_64 rng((omp_get_thread_num() + 1) * time(nullptr));
 
-        #pragma omp for
+        #pragma omp for schedule(static)
         for (int64_t i=0; i < len; i++) {
             VertexProp prop = findVertex(srcVertexPtr[i]);
 

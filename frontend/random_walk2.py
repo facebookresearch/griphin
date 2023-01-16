@@ -50,6 +50,7 @@ def random_walk2(shard_rrefs, num_machines, num_roots, walk_length, profile, pro
 
         if rank == 0:
             print(f"Starting Distributed Random Walk:"
+                  f" total_num_nodes: {local_shard.cluster_ptr[-1]},"
                   f" world_size={num_machines}, num_roots={num_roots}, walk_length={walk_length}")
 
         part1, part2, part3 = [], [], []
