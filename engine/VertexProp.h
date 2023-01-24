@@ -5,28 +5,28 @@
 #include <vector>
 #include <string>
 #include "global.h"
+#include "SharedMemoryVector.h"
 
 class VertexProp{
     public:
-        VertexProp(VertexType vertexID_, ShardType shardID_, EdgeType neighborStartIndex_, EdgeType neighborEndIndex_);
+        VertexProp(VertexType vertexID_, ShardType shardID_, EdgeType neighborStartIndex_, EdgeType neighborEndIndex_, VertexType* csrIndicesPtr_, ShardType* csrShardIndicesPtr_);
         VertexType vertexID;
         ShardType shardID;
-        int neighborCount;
-        EdgeType neighborStartIndex;
-        EdgeType neighborEndIndex;
+
+        SharedMemoryVector* neighborVector;
+
         bool isLocked;
         std::vector<float> vertexData;
-        // std::vector<VertexType> *neighborVertices = new std::vector<VertexType>;
-        // std::vector<int> *neighborVerticeShards = new std::vector<int>;
-        // std::vector<EdgeType> neighborEdges;
         VertexType getNodeId();
         ShardType getShardId();
-        EdgeType getNeighborStartIndex();
-        EdgeType getNeighborEndIndex();
-        bool addNeighbor(VertexType neighborId, int neighborShardId);
-        void getNeighbors();
-        void getShardsOfNeighbors();
-        void setVertexProp(std::vector<float> vertexData, std::vector<VertexType> neighborVertices, std::vector<EdgeType> neighborEdges);
+
+        VertexType* getIndicesPtr();
+        ShardType* getShardsPointer();
+        VertexType getNeighbor(int index);
+        ShardType getShard(int index);
+        
+        EdgeType getNeighborCount();
+
         bool getLocking();
         bool setLocking(bool b);
 };

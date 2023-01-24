@@ -25,13 +25,6 @@ template <class VertexProp, class EdgeProp>
 
     std::string line;
 
-    /*
-       idsListFile contains the numbers with the following format:
-       for shard 0 -> from 0 to |core vertices in current shard| - 1 and then halo vertices with their original ids in their original shards
-       for shard 0 -> from |core vertices in prev. shard| - 1 to |core vertices in current shard| and then halo vertices with their original ids in their original shards
-       we initially planned to start from 0 in each shard. However, it required us to keep <shard_id, vertex_id> pair for edges as there might be vertices with the same vertex_id
-       however, we can easily change it as current format keeps all the necessary information.
-    */
     readFile(partitionBookFile, &partitionBook, &dummy);
 
     readFile(idsListFile, &nodeIDs, &numNodes);
@@ -53,7 +46,7 @@ template <class VertexProp, class EdgeProp>
     for(VertexType i = 0; i < numCoreNodes; i++){
         auto neighborStartIndex = csrIndptrs[i];
         auto neighborEndIndex = csrIndptrs[i+1];
-        vertexProps.push_back(VertexProp(i, shardID, neighborStartIndex, neighborEndIndex));
+        vertexProps.push_back(VertexProp(i, shardID, neighborStartIndex, neighborEndIndex, csrIndices.data(), csrShardIndices.data()));
     }
 }
 
@@ -68,48 +61,21 @@ VertexProp Graph<VertexProp, EdgeProp>::findVertex(VertexType vertexID){
 } 
 
 template <class VertexProp, class EdgeProp>
-std::vector<VertexType> Graph<VertexProp, EdgeProp>::getNeighbors(VertexType vertexID){
-    std::vector<VertexType> neighbors;
-    auto neighborStartIndex = csrIndptrs[vertexID];
-    auto neighborEndIndex = csrIndptrs[vertexID+1];
-
-    for(auto i = neighborStartIndex; i < neighborEndIndex; i++){
-        neighbors.push_back(csrIndices[i]);
-    }
-    return neighbors;
-}
-
-template <class VertexProp, class EdgeProp>
-std::vector<ShardType> Graph<VertexProp, EdgeProp>::getNeighborShards(VertexType vertexID){
-    std::vector<ShardType> neighborShards;
-    int neighborStartIndex = csrIndptrs[vertexID];
-    int neighborEndIndex = csrIndptrs[vertexID+1];
-
-    for(int i = neighborStartIndex; i < neighborEndIndex; i++){
-        neighborShards.push_back(csrShardIndices[i]);
-    }
-    return neighborShards;
-}
-
-template <class VertexProp, class EdgeProp>
 Graph<VertexProp, EdgeProp>::~Graph(){
 }
 
 template <class VertexProp, class EdgeProp>
 int64_t Graph<VertexProp, EdgeProp>::getNumOfVertices(){
-//    printf("Num of Nodes: %d\n", numNodes);
     return numNodes;
 }
 
 template <class VertexProp, class EdgeProp>
 int64_t Graph<VertexProp, EdgeProp>::getNumOfCoreVertices(){
-//    printf("Num of Core Nodes: %d\n", numCoreNodes);
     return numCoreNodes;
 }
 
 template <class VertexProp, class EdgeProp>
 int64_t Graph<VertexProp, EdgeProp>::getNumOfHaloVertices(){
-//    printf("Num of Halo Nodes: %d\n", numHaloNodes);
     return numHaloNodes;
 }
 
@@ -157,23 +123,21 @@ Graph<VertexProp, EdgeProp>::sampleSingleNeighbor(const torch::Tensor& srcVertex
 
     for (int64_t i=0; i < len; i++) {
         VertexProp prop = findVertex(srcVertexPtr[i]);
-        auto neighborStartIndex = prop.getNeighborStartIndex();
-        auto neighborEndIndex = prop.getNeighborEndIndex();
-        auto size = neighborEndIndex - neighborStartIndex;
+        auto size = prop.getNeighborCount();
 
         VertexType neighborID;
         ShardType neighborShardID;
 
-        if (size == 0) {
+        if (prop.getNeighborCount() == 0) {
             neighborID = prop.getNodeId();
             neighborShardID = prop.shardID;
         }
         else{
-            std::uniform_int_distribution<int> uniform_dist(0, size-1);
+            std::uniform_int_distribution<int> uniform_dist(0, prop.getNeighborCount()-1);
             auto rand = uniform_dist(e);
 
-            neighborID = csrIndices[neighborStartIndex + rand];
-            neighborShardID = csrShardIndices[neighborStartIndex + rand];
+            neighborID = prop.getNeighbor(rand);
+            neighborShardID = prop.getShard(rand);
         }
 
         sampledVertices_[i] = neighborID;
@@ -220,9 +184,7 @@ Graph<VertexProp, EdgeProp>::sampleSingleNeighbor2(const torch::Tensor& srcVerte
         #pragma omp for schedule(static)
         for (int64_t i=0; i < len; i++) {
             VertexProp prop = findVertex(srcVertexPtr[i]);
-            auto neighborStartIndex = prop.getNeighborStartIndex();
-            auto neighborEndIndex = prop.getNeighborEndIndex();
-            auto size = neighborEndIndex - neighborStartIndex;
+            auto size = prop.getNeighborCount();
 
             VertexType neighborID;
             ShardType neighborShardID;
@@ -235,8 +197,8 @@ Graph<VertexProp, EdgeProp>::sampleSingleNeighbor2(const torch::Tensor& srcVerte
                 std::uniform_int_distribution<int> uniform_dist(0, size-1);
                 auto rand = uniform_dist(rng);
 
-                neighborID = csrIndices[neighborStartIndex + rand];
-                neighborShardID = csrShardIndices[neighborStartIndex + rand];
+                neighborID = prop.getNeighbor(rand);
+                neighborShardID = prop.getShard(rand);
             }
 
             localVertexIDs_[i] = neighborID;
