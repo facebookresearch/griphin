@@ -25,7 +25,7 @@ default_file_path = os.path.join(get_root_path(), 'engine/ogbn_csr_format')
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--num_machine', type=int, default=4, help='number of machines (simulated as processes)')
-parser.add_argument('--num_root', type=int, default=8192, help='number of root nodes in each machine')
+parser.add_argument('--num_roots', type=int, default=8192, help='number of root nodes in each machine')
 parser.add_argument('--walk_length', type=int, default=15, help='walk length')
 parser.add_argument('--worker_name', type=str, default='worker{}', help='name of workers, formatted by rank')
 parser.add_argument('--file_path', type=str, default=default_file_path, help='path to dataset')
@@ -71,7 +71,7 @@ def run(rank, args):
                     rpc.rpc_async(
                         rref.owner(),
                         rw_func_dict[args.rw_version],
-                        args=(rrefs, args.num_machine, args.num_root, args.walk_length, profile,
+                        args=(rrefs, args.num_machine, args.num_roots, args.walk_length, profile,
                               '{}/{}'.format(args.profile_prefix, rref.owner()), args.log)
                     )
                 )
