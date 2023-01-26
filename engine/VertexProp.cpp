@@ -16,7 +16,6 @@ ShardType VertexProp::getShardId(){
     return shardID;
 }
 
-
 VertexType* VertexProp::getIndicesPtr(){
     return neighborVector->getIndicesPtr();
 }

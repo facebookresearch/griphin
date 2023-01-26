@@ -46,40 +46,45 @@ int main(){
     int x = shard0.getNumOfVertices();
     x = shard0.getNumOfHaloVertices();
     VertexProp v = shard0.findVertex(10);
+    printf("%d - %d\n", v.getNodeId(), v.getShardId());
+    printf("neighbor size - %d\n", v.getSize());
+    printf("neighbor i - %d\n", v.getIndex(10));
+    printf("neighbor ptr - %p\n", (void *) v.getIndicesPtr());
+    printf("neighbor i - %d\n", v.getIndicesPtr()[10]);
     // std::vector<VertexType> neighbors = shard0.getNeighbors(10);
-    for(int i = 0; i < neighbors.size(); i ++){
-        printf("%d - ", neighbors[i]);
-    }
+    // for(int i = 0; i < neighbors.size(); i ++){
+    //     printf("%d - ", neighbors[i]);
+    // }
 
-    printf("\n\n");
+    // printf("\n\n");
 
-    x = shard1.getNumOfVertices();
-    x = shard1.getNumOfHaloVertices();
-    v = shard1.findVertex(120);
+    // x = shard1.getNumOfVertices();
+    // x = shard1.getNumOfHaloVertices();
+    // v = shard1.findVertex(120);
     // neighbors = shard1.getNeighbors(120);
-    for(int i = 0; i < neighbors.size(); i ++){
-        printf("%d - ", neighbors[i]);
-    }
-    printf("\n\n");
+    // for(int i = 0; i < neighbors.size(); i ++){
+    //     printf("%d - ", neighbors[i]);
+    // }
+    // printf("\n\n");
 
-    x = shard2.getNumOfVertices();
-    x = shard2.getNumOfHaloVertices();
-    v =shard2.findVertex(330);
+    // x = shard2.getNumOfVertices();
+    // x = shard2.getNumOfHaloVertices();
+    // v =shard2.findVertex(330);
     // neighbors = shard2.getNeighbors(330);
-    for(int i = 0; i < neighbors.size(); i ++){
-        printf("%d - ", neighbors[i]);
-    }
+    // for(int i = 0; i < neighbors.size(); i ++){
+    //     printf("%d - ", neighbors[i]);
+    // }
 
-    printf("\n\n");
+    // printf("\n\n");
 
-    x = shard3.getNumOfVertices();
-    x = shard3.getNumOfHaloVertices();
-    v = shard3.findVertex(240);
+    // x = shard3.getNumOfVertices();
+    // x = shard3.getNumOfHaloVertices();
+    // v = shard3.findVertex(240);
     // neighbors = shard3.getNeighbors(240);
-    for(int i = 0; i < neighbors.size(); i ++){
-        printf("%d - ", neighbors[i]);
-    }
-    printf("\n\n");
+    // for(int i = 0; i < neighbors.size(); i ++){
+    //     printf("%d - ", neighbors[i]);
+    // }
+    // printf("\n\n");
 
     return 0;
 }

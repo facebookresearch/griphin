@@ -5,8 +5,7 @@
 #include <vector>
 #include <string>
 #include "global.h"
-#include "utils.h"
-#include "SharedMemVector.h"
+#include "SharedMemoryVector.h"
 
 class VertexProp{
     public:
@@ -14,18 +13,13 @@ class VertexProp{
         VertexType vertexID;
         ShardType shardID;
 
-        EdgeType neighborCount;
-        
         SharedMemoryVector* neighborVector;
 
         bool isLocked;
         std::vector<float> vertexData;
-        
         VertexType getNodeId();
         ShardType getShardId();
-        
-        // bool addNeighbor(VertexType neighborId, int neighborShardId);
-        
+
         VertexType* getIndicesPtr();
         ShardType* getShardsPointer();
         VertexType getNeighbor(int index);

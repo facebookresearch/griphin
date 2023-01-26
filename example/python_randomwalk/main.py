@@ -14,7 +14,7 @@ from pyg_lib.sampler import random_walk as pyg_random_walk
 
 ENABLE_COMMUNICATION = True
 NUM_MACHINES = 4
-NUM_ROOTS = 8192
+NUM_ROOTS = 4096
 NUM_WALKS = 15
 RUNS = 10
 WARMUP = 3
