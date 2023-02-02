@@ -1,4 +1,4 @@
-from typing import Tuple, Dict
+from typing import Tuple, Dict, List
 
 import torch
 import graph_engine
@@ -14,7 +14,7 @@ def init_graph(path, shard_id):
     ids_file = 'p{}_ids.txt'
     shards_file = 'p{}_halo_shards.txt'
     csr_indices_file = 'csr_indices{}.txt'
-    csr_shard_indices_file = 'csr_shards{}.txt'
+    csr_shard_indices_file = 'csr_shards{}.txt，'
     csr_indptrs_file = 'csr_indptr{}.txt'
     partition_book = osp.join(path, 'partition_book.txt')
 
@@ -64,6 +64,9 @@ class GraphShard:
     def walk_one_step2(self, src_nodes: Tensor) -> Tuple[Tensor, Tensor, Tensor]:
         local_nid, global_nid, shard_id = self.g.sample_single_neighbor2(src_nodes)
         return local_nid, global_nid, shard_id
+
+    def batch_fetch_neighbors(self, src_nodes: Tensor) -> List[Tensor]:
+        return self.g.get_neighbor_lists(src_nodes)
 
 
     # --- for test only ---

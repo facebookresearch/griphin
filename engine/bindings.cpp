@@ -37,7 +37,8 @@ PYBIND11_MODULE(graph_engine, m) {
     .def("num_core_nodes", &Graph<VertexProp, EdgeProp>::getNumOfCoreVertices)
     .def("sample_single_neighbor", &Graph<VertexProp, EdgeProp>::sampleSingleNeighbor)
     .def("sample_single_neighbor2", &Graph<VertexProp, EdgeProp>::sampleSingleNeighbor2)
-    .def("partition_book", &Graph<VertexProp, EdgeProp>::getPartitionBook);
+    .def("partition_book", &Graph<VertexProp, EdgeProp>::getPartitionBook)
+    .def("get_neighbor_lists", &Graph<VertexProp, EdgeProp>::getNeighborLists);
 
     m.def("omp_add", &omp_test, "A function that adds b in to a for 10 times");
 }

@@ -133,7 +133,7 @@ Graph<VertexProp, EdgeProp>::sampleSingleNeighbor(const torch::Tensor& srcVertex
             neighborShardID = prop.shardID;
         }
         else{
-            std::uniform_int_distribution<int> uniform_dist(0, prop.getNeighborCount()-1);
+            std::uniform_int_distribution<int> uniform_dist(0, size-1);
             auto rand = uniform_dist(e);
 
             neighborID = prop.getNeighbor(rand);
@@ -213,4 +213,20 @@ Graph<VertexProp, EdgeProp>::sampleSingleNeighbor2(const torch::Tensor& srcVerte
     torch::Tensor shardIDs = torch::from_blob(shardIDs_, {len}, torch::kInt8);  // hard code
 
     return {localVertexIDs, globalVertexIDs, shardIDs};
+}
+
+template<class VertexProp, class EdgeProp>
+std::vector<torch::Tensor> Graph<VertexProp, EdgeProp>::getNeighborLists(const torch::Tensor &srcVertexIDs_) {
+    int64_t len = srcVertexIDs_.numel();
+    torch::Tensor srcVertexIDs = srcVertexIDs_.contiguous();
+    const VertexType* srcVertexPtr = srcVertexIDs.data_ptr<VertexType>();
+
+    std::vector<torch::Tensor> res(len, torch::Tensor());
+    auto opts = srcVertexIDs_.options();
+    for (auto i=0; i<len; i++) {
+        auto prop = findVertex(srcVertexPtr[i]);
+        res[i] = torch::from_blob(prop.getIndicesPtr(), {prop.getNeighborCount()}, opts);
+    }
+
+    return res;
 }
