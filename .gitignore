@@ -9,3 +9,5 @@
 *.so
 *.pyc
 tb_log*
+fetch_neighbor_single.png
+data
