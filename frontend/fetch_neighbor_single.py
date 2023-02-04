@@ -64,27 +64,18 @@ def run(rank):
             info = rpc.get_worker_info(WORKER_NAME.format(machine_rank))
             rrefs.append(remote(info, GraphShard, args=(FILE_PATH, machine_rank)))
 
-        d1 = list()
-        t1 = list()
-        d2 = list()
-        t2 = list()
+        for i in range(WARMUP):
+            fetch_neighbor(rrefs)
 
+        d1, d2, t1, t2 = [], [], [], []
         total_local_time = total_remote_time = 0
-        for i in range(RUNS + WARMUP):
-            if i == WARMUP:
-                total_local_time = total_remote_time = 0
-                d1 = list()
-                t1 = list()
-                d2 = list()
-                t2 = list()
 
+        for i in range(RUNS):
             local_time, remote_time, deg1, deg2 = fetch_neighbor(rrefs)
-
             d1.append(deg1)
-            t1.append(local_time * 1000)
             d2.append(deg2)
+            t1.append(local_time * 1000)
             t2.append(remote_time * 1000)
-
             print(f'Run {i}, Local Fetch Time = {local_time * 1000:.4f}ms,'
                   f' Remote Fetch Time = {remote_time * 1000:.4f}ms')
             total_local_time += local_time

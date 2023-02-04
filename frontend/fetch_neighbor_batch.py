@@ -72,6 +72,7 @@ def run(rank):
 
         total_local_time = total_remote_time = 0
         total_local_pushes = total_remote_pushes = 0
+
         for i in range(RUNS):
             res = fetch_neighbor(rrefs)
             print(f'Run {i+1}, Local Fetch Time = {res[0]:.4f}s, Remote Fetch Time = {res[1]:.4f}s')
