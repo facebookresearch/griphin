@@ -1,3 +1,4 @@
+from collections import OrderedDict
 from typing import Tuple, Dict, List
 
 import torch
@@ -96,19 +97,19 @@ class SSPPR:
         self.r[target_id] = 1
 
         self.key_str = '{}_{}'
-        self.activated_node_dict = {self.key_str.format(target_id, shard_id): (target_id, shard_id)}
+        # self.activated_nodes = OrderedDict({self.key_str.format(target_id, shard_id): (target_id, shard_id)})
+        self.activated_nodes = {self.key_str.format(target_id, shard_id)}
+        self.next_node_ids = [target_id]
+        self.next_shard_ids = [shard_id]
 
     def pop_activated_nodes(self) -> Tuple[Tensor, Tensor]:
-        # TODO: is there any efficient implementation?
-        node_ids, shard_ids = [], []
-        for _, val in self.activated_node_dict.items():
-            node_ids.append(val[0])
-            shard_ids.append(val[1])
-        self.activated_node_dict.clear()
+        node_ids, shard_ids = self.next_node_ids, self.next_shard_ids
+        self.next_node_ids, self.next_shard_ids = [], []
+        self.activated_nodes.clear()
         return torch.tensor(node_ids), torch.tensor(shard_ids)
 
     def push(self, neighbor_infos: List, v_ids: Tensor, v_shard_ids: Tensor):
-        for u_info, v_id, v_shard_id in zip(neighbor_infos, v_ids.tolist(), v_shard_ids.tolist()):
+        for u_info, v_id, v_shard_id in zip(neighbor_infos, v_ids, v_shard_ids):
             u_ids, u_shard_ids, u_weights, u_degrees = u_info
             global_v_id = v_id + self.cluster_ptr[v_shard_id]
             self.p[global_v_id] += self.alpha * self.r[global_v_id]
@@ -122,6 +123,8 @@ class SSPPR:
                 # check threshold
                 if self.r[global_u_id] >= self.alpha * u_degree:
                     u_key = self.key_str.format(u_id, u_shard_id)
-                    if u_key not in self.activated_node_dict.keys():
-                        self.activated_node_dict[u_key] = (u_id, u_shard_id)
+                    if u_key not in self.activated_nodes:
+                        self.activated_nodes.add(u_key)
+                        self.next_node_ids.append(u_id)
+                        self.next_shard_ids.append(u_shard_id)
 
