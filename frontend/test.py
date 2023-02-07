@@ -78,6 +78,13 @@ def test6():
     print(f'Time: {tok-tik:.3f}')
 
 
+def test7():
+    path = os.path.join(get_root_path(), 'engine/ogbn_csr_format')
+    gs = GraphShard(path, 0)
+    print(1)
+    print(gs.batch_fetch_neighbors(torch.tensor([0, 1, 2], dtype=VERTEX_ID_TYPE)))
+
+
 if __name__ == '__main__':
-    test2()
+    test7()
 

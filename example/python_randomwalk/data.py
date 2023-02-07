@@ -24,9 +24,9 @@ if __name__ == '__main__':
     # dataset = Reddit2(path, transform=T.ToSparseTensor())
     # data = dataset[0]
 
-    cluster_data = ClusterData(data, num_parts=40)
-    data_list = list(ClusterLoader(cluster_data, batch_size=1, shuffle=False))
-    data = data_list[0]
+    # cluster_data = ClusterData(data, num_parts=40)
+    # data_list = list(ClusterLoader(cluster_data, batch_size=1, shuffle=False))
+    # data = data_list[0]
 
     transform = T.ToSparseTensor()
     data = transform(data)
@@ -37,7 +37,7 @@ if __name__ == '__main__':
 
     for i, sub_data in enumerate(data_list):
         print(sub_data)
-        filename = f'partition_40_{NUM_PARTITION}_{i}.pt'
+        filename = f'partition_{NUM_PARTITION}_{i}.pt'
         path = os.path.join(dataset.processed_dir, filename)
         torch.save(sub_data, path)
 
