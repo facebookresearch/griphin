@@ -9,8 +9,8 @@ from ogb.nodeproppred import PygNodePropPredDataset
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--max_degree', type=int, default=1000)
-parser.add_argument('--drop_coe', type=float, default=0.9)
+parser.add_argument('--max_degree', type=int, default=-1)
+parser.add_argument('--drop_coe', type=float, default=0)
 parser.add_argument('--num_source', type=float, default=100)
 args = parser.parse_args()
 
@@ -80,7 +80,7 @@ def power_iter_ppr(P_w, target_id_, alpha_, epsilon_, max_iter, unweighted_degre
     return x.view(-1), num_push.item()
 
 
-def standard_local_push_ppr(g_, target_id_, alpha_, epsilon_, beta_=0., gamma_=1., max_degree_=-1, drop_coe_=0.5):
+def standard_local_push_ppr(g_, target_id_, alpha_, epsilon_, beta_=0., gamma_=1., max_degree_=-1, drop_coe_=0):
     num_nodes = g_['weighted_degree'].size(-1)
     p = torch.zeros(num_nodes)
     r = torch.zeros(num_nodes)
@@ -171,7 +171,7 @@ def uniform_local_push_ppr(g_, target_id_, alpha_, epsilon_, gamma_=1.):
     return p, iterations, num_push.item(), 0, 0
 
 
-def batch_local_push_ppr(g_, target_id_, alpha_, epsilon_, gamma_=1., max_degree_=-1, drop_coe_=0.5):
+def batch_local_push_ppr(g_, target_id_, alpha_, epsilon_, gamma_=1., max_degree_=-1, drop_coe_=0):
     num_nodes = g_['weighted_degree'].size(-1)
     p = torch.zeros(num_nodes)
     r = torch.zeros(num_nodes)
