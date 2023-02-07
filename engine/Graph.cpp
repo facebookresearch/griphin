@@ -35,7 +35,7 @@ template <class VertexProp, class EdgeProp>
     numCoreNodes = numNodes - numHaloNodes;
 
     // read the csr indices file
-    readFile(csrIndicesFile, &csrIndices, &dummy);
+    readFile(csrIndicesFile, &csrIndices, &numEdges);
 
     // read the csr shard indices file
     readFile(csrShardIndicesFile, &csrShardIndices, &dummy);
@@ -43,10 +43,25 @@ template <class VertexProp, class EdgeProp>
     // read the csr indptrs file
     readFile(csrIndPtrsFile, &csrIndptrs, &dummy);
 
+    std::random_device rd;
+
+    std::mt19937 e2(rd());
+    std::uniform_real_distribution<> dist(0, 1);
+
+    for (int n = 0; n < numEdges; ++n) {
+        edgeWeights.push_back(dist(e2));
+    }
+
     for(VertexType i = 0; i < numCoreNodes; i++){
         auto neighborStartIndex = csrIndptrs[i];
         auto neighborEndIndex = csrIndptrs[i+1];
-        vertexProps.push_back(VertexProp(i, shardID, neighborStartIndex, neighborEndIndex, csrIndices.data(), csrShardIndices.data()));
+
+        float temp = 0;
+        for(int n = neighborStartIndex; n < neighborEndIndex; n++){
+            temp += edgeWeights[n];
+        }
+        weightedDegrees.push_back(temp);
+        vertexProps.push_back(VertexProp(i, shardID, neighborStartIndex, neighborEndIndex, temp, edgeWeights.data(), csrIndices.data(), csrShardIndices.data()));
     }
 }
 

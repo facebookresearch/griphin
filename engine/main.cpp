@@ -6,6 +6,7 @@
 #include "Graph.cpp"
 #include "EdgeProp.h"
 #include "VertexProp.h"
+#include <random>
 
 int main(){
     char p0_ids_file[] = "ogbn_small_csr_format/p0_ids.txt";
@@ -46,9 +47,8 @@ int main(){
     int x = shard0.getNumOfVertices();
     x = shard0.getNumOfHaloVertices();
     VertexProp v = shard0.findVertex(10);
+    printf("weighted degree %f\n", v.getWeightedDegree());
     printf("%d - %d\n", v.getNodeId(), v.getShardId());
-    printf("neighbor size - %d\n", v.getSize());
-    printf("neighbor i - %d\n", v.getIndex(10));
     printf("neighbor ptr - %p\n", (void *) v.getIndicesPtr());
     printf("neighbor i - %d\n", v.getIndicesPtr()[10]);
     // std::vector<VertexType> neighbors = shard0.getNeighbors(10);

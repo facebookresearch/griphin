@@ -32,6 +32,8 @@ template <class VertexProp, class EdgeProp> class Graph{
         std::vector<ShardType> csrShardIndices;
         std::vector<EdgeType> csrIndptrs;
         std::vector<VertexType> partitionBook;
+        std::vector<float> edgeWeights;
+        std::vector<float> weightedDegrees;
 
     public:
         Graph(ShardType shardID_, const char *idsListFile, const char *haloShardsListFile, const char *csrIndicesFile, const char *csrShardIndicesFile, const char *csrIndPtrsFile, const char *partitionBookFile);  // takes shards as the argument
