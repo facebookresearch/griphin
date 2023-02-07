@@ -46,6 +46,7 @@ template <class VertexProp, class EdgeProp> class Graph{
         int64_t getNumOfCoreVertices();
         int64_t getNumOfHaloVertices();
         std::vector<torch::Tensor>getNeighborLists(const torch::Tensor &srcVertexIDs_);
+        std::vector<torch::Tensor>getNeighborInfos(const torch::Tensor &srcVertexIDs_);
         VertexProp findVertex(VertexType vertexID);          // returns local id in the current shard based on given global id
 
         bool findVertexLocking(VertexType localVertexID);          // i did not understand what are the locks used for but i am assuming this function returns true if the given node is locked

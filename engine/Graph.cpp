@@ -245,3 +245,20 @@ std::vector<torch::Tensor> Graph<VertexProp, EdgeProp>::getNeighborLists(const t
 
     return res;
 }
+
+
+template<class VertexProp, class EdgeProp>
+std::vector<torch::Tensor> Graph<VertexProp, EdgeProp>::getNeighborInfos(const torch::Tensor &srcVertexIDs_) {
+    int64_t len = srcVertexIDs_.numel();
+    torch::Tensor srcVertexIDs = srcVertexIDs_.contiguous();
+    const VertexType* srcVertexPtr = srcVertexIDs.data_ptr<VertexType>();
+
+    std::vector<torch::Tensor> res(len, torch::Tensor());
+    auto opts = srcVertexIDs_.options();
+    for (auto i=0; i<len; i++) {
+        auto prop = findVertex(srcVertexPtr[i]);
+        res[i] = torch::from_blob(prop.getIndicesPtr(), {prop.getNeighborCount()}, opts);
+    }
+
+    return res;
+}

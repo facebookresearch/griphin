@@ -90,7 +90,7 @@ def approx_ppr(graph_rrefs):
                 r[u_ids] += v_msg * u_weights / u_weights.sum()
 
         iteration = 0
-        while True > 0:
+        while True:
             v_mask = r > threshold
             iteration += 1
             if LOG:

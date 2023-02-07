@@ -68,8 +68,60 @@ class GraphShard:
     def batch_fetch_neighbors(self, src_nodes: Tensor) -> List[Tensor]:
         return self.g.get_neighbor_lists(src_nodes)
 
+    def batch_fetch_neighbor_infos(self, src_nodes: Tensor) -> List[Tuple[Tensor, Tensor, Tensor, Tensor]]:
+        """
+        :param src_nodes:
+        :return: List of (VertexIDs, ShardIDs, EdgeWeights, Degrees)
+        """
+        return self.g.get_neighbor_infos(src_nodes)
+
 
     # --- for test only ---
     def get_dict_tensor(self, root_nodes):
         rand = torch.ones_like(root_nodes)
         return rand, {1: rand[:10], 2: rand[10: 40], 3: rand[40: 100], 4: rand[100:]}
+
+
+class SSPPR:
+    """
+        Front end wrapper for SSPPR.h
+    """
+    def __init__(self, num_nodes, target_id, shard_id, cluster_ptr, alpha, epsilon):
+        self.cluster_ptr = cluster_ptr
+        self.alpha = alpha
+        self.epsilon = epsilon
+
+        self.p = torch.zeros(num_nodes)
+        self.r = torch.zeros(num_nodes)
+        self.r[target_id] = 1
+
+        self.key_str = '{}_{}'
+        self.activated_node_dict = {self.key_str.format(target_id, shard_id): (target_id, shard_id)}
+
+    def pop_activated_nodes(self) -> Tuple[Tensor, Tensor]:
+        # TODO: is there any efficient implementation?
+        node_ids, shard_ids = [], []
+        for _, val in self.activated_node_dict.items():
+            node_ids.append(val[0])
+            shard_ids.append(val[1])
+        self.activated_node_dict.clear()
+        return torch.tensor(node_ids), torch.tensor(shard_ids)
+
+    def push(self, neighbor_infos: List, v_ids: Tensor, v_shard_ids: Tensor):
+        for u_info, v_id, v_shard_id in zip(neighbor_infos, v_ids.tolist(), v_shard_ids.tolist()):
+            u_ids, u_shard_ids, u_weights, u_degrees = u_info
+            global_v_id = v_id + self.cluster_ptr[v_shard_id]
+            self.p[global_v_id] += self.alpha * self.r[global_v_id]
+            u_vals = (1 - self.alpha) * self.r[global_v_id] * u_weights / u_weights.sum()
+            self.r[global_v_id] = 0
+
+            for val, u_id, u_shard_id, u_degree in zip(u_vals, u_ids, u_shard_ids, u_degrees):
+                global_u_id = u_id + self.cluster_ptr[u_shard_id]
+                # update neighbor node
+                self.r[global_u_id] += val
+                # check threshold
+                if self.r[global_u_id] >= self.alpha * u_degree:
+                    u_key = self.key_str.format(u_id, u_shard_id)
+                    if u_key not in self.activated_node_dict.keys():
+                        self.activated_node_dict[u_key] = (u_id, u_shard_id)
+
