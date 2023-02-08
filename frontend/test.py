@@ -6,7 +6,7 @@ from pathlib import Path
 import torch
 import graph_engine
 
-from utils import get_root_path
+from utils import get_root_path, get_data_path
 from graph import GraphShard, VERTEX_ID_TYPE
 
 
@@ -79,10 +79,12 @@ def test6():
 
 
 def test7():
-    path = os.path.join(get_root_path(), 'engine/ogbn_csr_format')
+    path = os.path.join(get_data_path(), 'ogbn_products_{}partitions'.format(4))
+    t1 = time.time()
     gs = GraphShard(path, 0)
-    print(1)
-    print(gs.batch_fetch_neighbors(torch.tensor([0, 1, 2], dtype=VERTEX_ID_TYPE)))
+    t2 = time.time()
+    print(f'Graph loading time: {(t2-t1):.3f}')
+    print(gs.batch_fetch_neighbor_infos(torch.tensor([0], dtype=VERTEX_ID_TYPE)))
 
 
 if __name__ == '__main__':

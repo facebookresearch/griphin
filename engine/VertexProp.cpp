@@ -9,47 +9,55 @@ VertexProp::VertexProp(VertexType vertexID_, ShardType shardID_, EdgeType neighb
     weightedDegree = weightedDegree_;
 }
 
-VertexType VertexProp::getNodeId(){
+VertexType VertexProp::getNodeId() const{
     return vertexID;
 }
 
-ShardType VertexProp::getShardId(){
+ShardType VertexProp::getShardId() const{
     return shardID;
 }
 
-float VertexProp::getWeightedDegree(){
+float VertexProp::getWeightedDegree() const{
     return weightedDegree;
 }
 
-VertexType* VertexProp::getIndicesPtr(){
+VertexType* VertexProp::getIndicesPtr() const{
     return neighborVector->getIndicesPtr();
 }
 
-ShardType* VertexProp::getShardsPointer(){
+ShardType* VertexProp::getShardsPtr() const{
     return neighborVector->getShardsPtr();
 }
 
-float* VertexProp::getWeightedDegreesPtr(){
+float* VertexProp::getWeightedDegreesPtr() const{
     return neighborVector->getWeightedDegreesPtr();
 }
 
-VertexType VertexProp::getNeighbor(int index){
+float* VertexProp::getEdgeWeightsPtr() const{
+    return neighborVector->getWeightedDegreesPtr();
+}
+
+VertexType VertexProp::getNeighbor(int index) const{
     return neighborVector->getIndex(index);
 }
 
-ShardType VertexProp::getShard(int index){
+ShardType VertexProp::getShard(int index) const{
     return neighborVector->getShardIndex(index);
 }
 
-float VertexProp::getNeighborWeightedDegree(int index){
+float VertexProp::getNeighborWeightedDegree(int index) const{
     return neighborVector->getWeightedDegreeIndex(index);
 }
 
-VertexType VertexProp::getNeighborCount(){
+float VertexProp::getEdgeWeight(int index) const{
+    return neighborVector->getEdgeWeightIndex(index);
+}
+
+VertexType VertexProp::getNeighborCount() const{
     return neighborVector->getSize();
 }
 
-bool VertexProp::getLocking(){
+bool VertexProp::getLocking() const{
     return isLocked;
 }
 

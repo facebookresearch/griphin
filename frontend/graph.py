@@ -1,4 +1,4 @@
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 from typing import Tuple, Dict, List
 
 import torch
@@ -77,10 +77,8 @@ class GraphShard:
         return self.g.get_neighbor_infos(src_nodes)
 
 
-    # --- for test only ---
-    def get_dict_tensor(self, root_nodes):
-        rand = torch.ones_like(root_nodes)
-        return rand, {1: rand[:10], 2: rand[10: 40], 3: rand[40: 100], 4: rand[100:]}
+def key_str(node_id, shard_id):
+    return '{}_{}'.format(node_id, shard_id)
 
 
 class SSPPR:
@@ -92,13 +90,12 @@ class SSPPR:
         self.alpha = alpha
         self.epsilon = epsilon
 
-        self.p = torch.zeros(num_nodes)
-        self.r = torch.zeros(num_nodes)
-        self.r[target_id] = 1
+        self.p = defaultdict(float)
+        self.r = defaultdict(float)
+        self.r[key_str(target_id, shard_id)] = 1
 
-        self.key_str = '{}_{}'
         # self.activated_nodes = OrderedDict({self.key_str.format(target_id, shard_id): (target_id, shard_id)})
-        self.activated_nodes = {self.key_str.format(target_id, shard_id)}
+        self.activated_nodes = {key_str(target_id, shard_id)}
         self.next_node_ids = [target_id]
         self.next_shard_ids = [shard_id]
 
@@ -111,18 +108,18 @@ class SSPPR:
     def push(self, neighbor_infos: List, v_ids: Tensor, v_shard_ids: Tensor):
         for u_info, v_id, v_shard_id in zip(neighbor_infos, v_ids, v_shard_ids):
             u_ids, u_shard_ids, u_weights, u_degrees = u_info
-            global_v_id = v_id + self.cluster_ptr[v_shard_id]
-            self.p[global_v_id] += self.alpha * self.r[global_v_id]
-            u_vals = (1 - self.alpha) * self.r[global_v_id] * u_weights / u_weights.sum()
-            self.r[global_v_id] = 0
+
+            v_key = key_str(v_id, v_shard_id)
+            self.p[v_key] += self.alpha * self.r[v_key]
+            u_vals = (1 - self.alpha) * self.r[v_key] * u_weights / u_weights.sum()
+            self.r[v_key] = 0
 
             for val, u_id, u_shard_id, u_degree in zip(u_vals, u_ids, u_shard_ids, u_degrees):
-                global_u_id = u_id + self.cluster_ptr[u_shard_id]
+                u_key = key_str(u_id, u_shard_id)
                 # update neighbor node
-                self.r[global_u_id] += val
+                self.r[u_key] += val
                 # check threshold
-                if self.r[global_u_id] >= self.alpha * u_degree:
-                    u_key = self.key_str.format(u_id, u_shard_id)
+                if self.r[u_key] >= self.epsilon * u_degree:
                     if u_key not in self.activated_nodes:
                         self.activated_nodes.add(u_key)
                         self.next_node_ids.append(u_id)

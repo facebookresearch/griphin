@@ -22,6 +22,10 @@ float* SharedMemoryVector::getWeightedDegreesPtr(){
     return &csrWeightedDegrees[neighborStartIndex];
 }
 
+float* SharedMemoryVector::getEdgeWeightsPtr(){
+    return &edgeWeights[neighborStartIndex];
+}
+
 VertexType SharedMemoryVector::getIndex(int index){
     return csrIndices[neighborStartIndex + index];
 }
@@ -32,6 +36,10 @@ ShardType SharedMemoryVector::getShardIndex(int index){
 
 float SharedMemoryVector::getWeightedDegreeIndex(int index){
     return csrWeightedDegrees[neighborStartIndex + index];
+}
+
+float SharedMemoryVector::getEdgeWeightIndex(int index){
+    return edgeWeights[neighborStartIndex + index];
 }
 
 EdgeType SharedMemoryVector::getSize(){

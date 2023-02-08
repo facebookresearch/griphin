@@ -69,6 +69,9 @@ template <class VertexProp, class EdgeProp>
 
         for(int n = neighborStartIndex; n < neighborEndIndex; n++){
             VertexType u = csrIndices[n];
+//            if (u > numCoreNodes) {
+//                std::cout<<weightedDegrees.size()<<" "<< u << " " << weightedDegrees[u] << std::endl;
+//            }
             csrWeightedDegrees.push_back(weightedDegrees[u]);
         }
     }
@@ -263,16 +266,23 @@ std::vector<torch::Tensor> Graph<VertexProp, EdgeProp>::getNeighborLists(const t
 }
 
 template<class VertexProp, class EdgeProp>
-std::vector<torch::Tensor> Graph<VertexProp, EdgeProp>::getNeighborInfos(const torch::Tensor &srcVertexIDs_) {
+std::vector<std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor>>
+        Graph<VertexProp, EdgeProp>::getNeighborInfos(const torch::Tensor &srcVertexIDs_) {
     int64_t len = srcVertexIDs_.numel();
     torch::Tensor srcVertexIDs = srcVertexIDs_.contiguous();
     const VertexType* srcVertexPtr = srcVertexIDs.data_ptr<VertexType>();
 
-    std::vector<torch::Tensor> res(len, {torch::Tensor(), torch::Tensor(), torch::Tensor(), torch::Tensor()});
+    std::vector<std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor>> res(
+            len,{torch::Tensor(), torch::Tensor(), torch::Tensor(), torch::Tensor()});
+
     auto opts = srcVertexIDs_.options();
     for (auto i=0; i<len; i++) {
         auto prop = findVertex(srcVertexPtr[i]);
-        res[i] = torch::from_blob(prop.getIndicesPtr(), {prop.getNeighborCount()}, opts);
+        auto size = prop.getNeighborCount();
+        res[i] = std::make_tuple(torch::from_blob(prop.getIndicesPtr(), {size}, opts),
+                                 torch::from_blob(prop.getShardsPtr(), {size}, torch::kInt8),
+                                 torch::from_blob(prop.getEdgeWeightsPtr(), {size}, torch::kFloat32),
+                                 torch::from_blob(prop.getWeightedDegreesPtr(), {size}, torch::kFloat32));
     }
 
     return res;
