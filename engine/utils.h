@@ -15,14 +15,17 @@ inline int uniform_randint(int high) {
 }
 
 template <class T>
-inline void readFile(const char *fileName, std::vector<T> *vec, int64_t *counter){
+inline void readFile(const char *fileName, std::vector<T> *vec, int64_t *counter, int mode = 0){ // mode 0 is int, mode 1 is float
     std::string line;
 
     std::ifstream file(fileName);
     if(file.is_open()){
         while(getline(file, line)){
             (*counter) ++;
-            (*vec).push_back(std::atoi(line.c_str()));
+            if(mode == 0)
+                (*vec).push_back(std::atoi(line.c_str()));
+            else
+                (*vec).push_back(std::atof(line.c_str()));
         }
         file.close();
     }

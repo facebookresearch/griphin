@@ -9,7 +9,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <map>
-#include <torch/extension.h>
+// #include <torch/extension.h>
 #include "global.h"
 #include "EdgeProp.h"
 #include "VertexProp.h"
@@ -37,7 +37,7 @@ template <class VertexProp, class EdgeProp> class Graph{
         std::vector<float> csrWeightedDegrees;
 
     public:
-        Graph(ShardType shardID_, const char *idsListFile, const char *haloShardsListFile, const char *csrIndicesFile, const char *csrShardIndicesFile, const char *csrIndPtrsFile, const char *partitionBookFile);  // takes shards as the argument
+        Graph(ShardType shardID_, const char *idsListFile, const char *haloShardsListFile, const char *csrIndicesFile, const char *csrShardIndicesFile, const char *csrIndPtrsFile, const char *weightedDegreesFile, const char *partitionBookFile);  // takes shards as the argument
         ~Graph();
 
         std::vector<VertexType> getPartitionBook();
@@ -46,8 +46,8 @@ template <class VertexProp, class EdgeProp> class Graph{
         int64_t getNumOfVertices();
         int64_t getNumOfCoreVertices();
         int64_t getNumOfHaloVertices();
-        std::vector<torch::Tensor>getNeighborLists(const torch::Tensor &srcVertexIDs_);
-        std::vector<torch::Tensor>getNeighborInfos(const torch::Tensor &srcVertexIDs_);
+        // std::vector<torch::Tensor>getNeighborLists(const torch::Tensor &srcVertexIDs_);
+        // std::vector<torch::Tensor>getNeighborInfos(const torch::Tensor &srcVertexIDs_);
         VertexProp findVertex(VertexType vertexID);          // returns local id in the current shard based on given global id
 
         bool findVertexLocking(VertexType localVertexID);          // i did not understand what are the locks used for but i am assuming this function returns true if the given node is locked
@@ -71,8 +71,8 @@ template <class VertexProp, class EdgeProp> class Graph{
         bool deleteEdge(EdgeType localEdgeID);
 
         // Sampling
-        std::tuple<torch::Tensor, std::map<ShardType, torch::Tensor>> sampleSingleNeighbor(const torch::Tensor &srcVertexIDs_);  // return {localIDs, shardIndexMap}
-        std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> sampleSingleNeighbor2(const torch::Tensor &srcVertexIDs_);
+        // std::tuple<torch::Tensor, std::map<ShardType, torch::Tensor>> sampleSingleNeighbor(const torch::Tensor &srcVertexIDs_);  // return {localIDs, shardIndexMap}
+        // std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> sampleSingleNeighbor2(const torch::Tensor &srcVertexIDs_);
 };
 
 #endif
