@@ -12,6 +12,7 @@ template <class VertexProp, class EdgeProp>
                                        const char *csrIndicesFile,
                                        const char *csrShardIndicesFile,
                                        const char *csrIndPtrsFile,
+                                       const char *edgeWeightsFile,
                                        const char *weightedDegreesFile,
                                        const char *partitionBookFile
                                        ){
@@ -46,15 +47,14 @@ template <class VertexProp, class EdgeProp>
 
     readFile(weightedDegreesFile, &weightedDegrees, &dummy, 1);
 
+    readFile(edgeWeightsFile, &edgeWeights, &dummy, 1);
+
     for(VertexType i = 0; i < numCoreNodes; i++){
         auto neighborStartIndex = csrIndptrs[i];
         auto neighborEndIndex = csrIndptrs[i+1];
 
         for(int n = neighborStartIndex; n < neighborEndIndex; n++){
             VertexType u = csrIndices[n];
-//            if (u > numCoreNodes) {
-//                std::cout<<weightedDegrees.size()<<" "<< u << " " << weightedDegrees[u] << std::endl;
-//            }
             csrWeightedDegrees.push_back(weightedDegrees[u]);
         }
     }

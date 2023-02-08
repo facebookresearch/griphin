@@ -34,7 +34,7 @@ float* VertexProp::getWeightedDegreesPtr() const{
 }
 
 float* VertexProp::getEdgeWeightsPtr() const{
-    return neighborVector->getWeightedDegreesPtr();
+    return neighborVector->getEdgeWeightsPtr();
 }
 
 VertexType VertexProp::getNeighbor(int index) const{
