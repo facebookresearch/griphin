@@ -61,7 +61,23 @@ template <class VertexProp, class EdgeProp>
             temp += edgeWeights[n];
         }
         weightedDegrees.push_back(temp);
-        vertexProps.push_back(VertexProp(i, shardID, neighborStartIndex, neighborEndIndex, temp, edgeWeights.data(), csrIndices.data(), csrShardIndices.data()));
+    }
+
+    for(VertexType i = 0; i < numCoreNodes; i++){
+        auto neighborStartIndex = csrIndptrs[i];
+        auto neighborEndIndex = csrIndptrs[i+1];
+
+        for(int n = neighborStartIndex; n < neighborEndIndex; n++){
+            VertexType u = csrIndices[n];
+            csrWeightedDegrees.push_back(weightedDegrees[u]);
+        }
+    }
+
+    for(VertexType i = 0; i < numCoreNodes; i++){
+        auto neighborStartIndex = csrIndptrs[i];
+        auto neighborEndIndex = csrIndptrs[i+1];
+
+        vertexProps.push_back(VertexProp(i, shardID, neighborStartIndex, neighborEndIndex, weightedDegrees[i], csrWeightedDegrees.data(), edgeWeights.data(), csrIndices.data(), csrShardIndices.data()));
     }
 }
 
