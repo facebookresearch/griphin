@@ -19,21 +19,23 @@ class VertexProp{
 
         bool isLocked;
         std::vector<float> vertexData;
-        VertexType getNodeId();
-        ShardType getShardId();
-        float getWeightedDegree();
+        VertexType getNodeId() const;
+        ShardType getShardId() const;
+        float getWeightedDegree() const;
         
-        VertexType* getIndicesPtr();
-        ShardType* getShardsPointer();
-        float* getWeightedDegreesPtr();
-        
-        VertexType getNeighbor(int index);
-        ShardType getShard(int index);
-        float getNeighborWeightedDegree(int index);
-        
-        EdgeType getNeighborCount();
+        VertexType* getIndicesPtr() const;
+        ShardType* getShardsPtr() const;
+        float* getWeightedDegreesPtr() const;
+        float* getEdgeWeightsPtr() const;
 
-        bool getLocking();
+        VertexType getNeighbor(int index) const;
+        ShardType getShard(int index) const;
+        float getNeighborWeightedDegree(int index) const;
+        float getEdgeWeight(int index) const;
+
+        EdgeType getNeighborCount() const;
+
+        bool getLocking() const;
         bool setLocking(bool b);
 };
 

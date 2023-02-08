@@ -19,10 +19,12 @@ class SharedMemoryVector{
         VertexType* getIndicesPtr();
         ShardType* getShardsPtr();
         float* getWeightedDegreesPtr();
+        float* getEdgeWeightsPtr();
 
         VertexType getIndex(int index);
         ShardType getShardIndex(int index);
         float getWeightedDegreeIndex(int index);
+        float getEdgeWeightIndex(int index);
 
         VertexType getSize();
 

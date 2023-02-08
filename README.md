@@ -34,3 +34,6 @@
   ```
   python example/python_ppr/main.py
   ```
+  
+## Dev Tips
+- When creating new .cpp files, include these files in bindings.cpp (e.g., `#include "VertexProp.cpp"`) 

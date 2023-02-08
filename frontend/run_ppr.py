@@ -11,8 +11,8 @@ from ppr import forward_push_single, forward_push_batch
 from utils import get_data_path
 from graph import GraphShard
 
-RUNS = 10
-WARMUP = 3
+RUNS = 1
+WARMUP = 0
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--num_machine', type=int, default=4, help='number of machines (simulated as processes)')
@@ -50,18 +50,20 @@ def run(rank, args):
 
             tik = time.perf_counter()
 
-            futs = []
-            for rref in rrefs:
-                futs.append(
-                    rpc.rpc_async(
-                        rref.owner(),
-                        ppr_func_dict[args.version],
-                        args=(rrefs, args.num_roots, args.alpha, args.epsilon)
-                    )
-                )
-            c = []
-            for fut in futs:
-                c.append(fut.wait())
+            ppr_func_dict[args.version](rrefs, args.num_roots, args.alpha, args.epsilon)
+
+            # futs = []
+            # for rref in rrefs:
+            #     futs.append(
+            #         rpc.rpc_async(
+            #             rref.owner(),
+            #             ppr_func_dict[args.version],
+            #             args=(rrefs, args.num_roots, args.alpha, args.epsilon)
+            #         )
+            #     )
+            # c = []
+            # for fut in futs:
+            #     c.append(fut.wait())
 
             tok = time.perf_counter()
             print(f'Run {i}, Time = {tok - tik:.3f}s')
@@ -74,9 +76,7 @@ def run(rank, args):
 
 if __name__ == '__main__':
     args = parser.parse_args()
-    if args.profile:
-        args.profile_prefix = '{}/{}'.format(args.profile_prefix, time.time())
-    if 0 == len(args.file_path):
+    if len(args.file_path) == 0:
         args.file_path = os.path.join(get_data_path(), 'ogbn_products_{}partitions'.format(args.num_machine))
 
     print('Spawn Multi-Process to simulate Multi-Machine scenario')

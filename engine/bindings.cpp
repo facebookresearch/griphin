@@ -3,6 +3,7 @@
 #include "Graph.cpp"
 #include "EdgeProp.cpp"
 #include "VertexProp.cpp"
+#include "SharedMemoryVector.cpp"
 #include <vector>
 #include <omp.h>
 

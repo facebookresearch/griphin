@@ -13,3 +13,4 @@ fetch_neighbor_single.png
 data
 /engine/ogbn*
 /engine/out
+/notebooks/.ipynb_checkpoints/
