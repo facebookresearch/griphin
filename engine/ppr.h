@@ -1,5 +1,5 @@
-#ifndef PPR
-#define PPR
+#ifndef PPR_H
+#define PPR_H
 
 #include <iostream>
 #include <string>
