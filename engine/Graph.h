@@ -33,7 +33,6 @@ template <class VertexProp, class EdgeProp> class Graph{
         std::vector<EdgeType> csrIndptrs;
         std::vector<VertexType> partitionBook;
         std::vector<float> edgeWeights;
-        std::vector<float> weightedDegrees;
         std::vector<float> csrWeightedDegrees;
 
     public:

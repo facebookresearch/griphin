@@ -1,6 +1,11 @@
 #include "SharedMemoryVector.h"
 
-SharedMemoryVector::SharedMemoryVector(EdgeType neighborStartIndex_, EdgeType neighborEndIndex_, float* csrWeightedDegrees_, float* edgeWeights_, VertexType* csrIndices_, ShardType* csrShardIndices_){
+SharedMemoryVector::SharedMemoryVector(EdgeType neighborStartIndex_,
+                                       EdgeType neighborEndIndex_,
+                                       float* csrWeightedDegrees_,
+                                       float* edgeWeights_,
+                                       VertexType* csrIndices_,
+                                       ShardType* csrShardIndices_){
     neighborStartIndex = neighborStartIndex_;
     neighborEndIndex = neighborEndIndex_;
     size = neighborEndIndex - neighborStartIndex;
