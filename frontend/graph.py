@@ -17,13 +17,22 @@ def init_graph(path, shard_id):
     csr_indices_file = 'csr_indices{}.txt'
     csr_shard_indices_file = 'csr_shards{}.txt'
     csr_indptrs_file = 'csr_indptr{}.txt'
+    csr_edge_weights_file = 'csr_edge_weights_p{}.txt'
+    csr_weighted_degrees_file = 'csr_weighted_degrees_p{}.txt'
     partition_book = osp.join(path, 'partition_book.txt')
 
     def _dir(filename):
         return osp.join(path, filename.format(shard_id))
 
-    return graph_engine.Graph(
-        shard_id, _dir(ids_file), _dir(shards_file), _dir(csr_indices_file), _dir(csr_shard_indices_file), _dir(csr_indptrs_file), partition_book)
+    return graph_engine.Graph(shard_id,
+                              _dir(ids_file),
+                              _dir(shards_file),
+                              _dir(csr_indices_file),
+                              _dir(csr_shard_indices_file),
+                              _dir(csr_indptrs_file),
+                              _dir(csr_edge_weights_file),
+                              _dir(csr_weighted_degrees_file),
+                              partition_book)
 
 
 class GraphShard:
@@ -85,8 +94,7 @@ class SSPPR:
     """
         Front end wrapper for SSPPR.h
     """
-    def __init__(self, num_nodes, target_id, shard_id, cluster_ptr, alpha, epsilon):
-        self.cluster_ptr = cluster_ptr
+    def __init__(self, target_id, shard_id, alpha, epsilon):
         self.alpha = alpha
         self.epsilon = epsilon
 
@@ -95,13 +103,20 @@ class SSPPR:
         self.r[key_str(target_id, shard_id)] = 1
 
         # self.activated_nodes = OrderedDict({self.key_str.format(target_id, shard_id): (target_id, shard_id)})
-        self.activated_nodes = {key_str(target_id, shard_id)}
-        self.next_node_ids = [target_id]
-        self.next_shard_ids = [shard_id]
+        self.activated_nodes = {key_str(target_id, shard_id): (target_id, shard_id)}
+        # self.next_node_ids = [target_id]
+        # self.next_shard_ids = [shard_id]
 
     def pop_activated_nodes(self) -> Tuple[Tensor, Tensor]:
-        node_ids, shard_ids = self.next_node_ids, self.next_shard_ids
-        self.next_node_ids, self.next_shard_ids = [], []
+        # node_ids, shard_ids = self.next_node_ids, self.next_shard_ids
+        # self.next_node_ids, self.next_shard_ids = [], []
+        # self.activated_nodes.clear()
+        # return torch.tensor(node_ids), torch.tensor(shard_ids)
+
+        node_ids, shard_ids = [], []
+        for nid, sid in self.activated_nodes.values():
+            node_ids.append(nid)
+            shard_ids.append(sid)
         self.activated_nodes.clear()
         return torch.tensor(node_ids), torch.tensor(shard_ids)
 
@@ -113,6 +128,7 @@ class SSPPR:
             self.p[v_key] += self.alpha * self.r[v_key]
             u_vals = (1 - self.alpha) * self.r[v_key] * u_weights / u_weights.sum()
             self.r[v_key] = 0
+            self.activated_nodes.pop(v_key, None)
 
             for val, u_id, u_shard_id, u_degree in zip(u_vals, u_ids, u_shard_ids, u_degrees):
                 u_key = key_str(u_id, u_shard_id)
@@ -120,8 +136,8 @@ class SSPPR:
                 self.r[u_key] += val
                 # check threshold
                 if self.r[u_key] >= self.epsilon * u_degree:
-                    if u_key not in self.activated_nodes:
-                        self.activated_nodes.add(u_key)
-                        self.next_node_ids.append(u_id)
-                        self.next_shard_ids.append(u_shard_id)
+                    if u_key not in self.activated_nodes.keys():
+                        self.activated_nodes[u_key] = (u_id, u_shard_id)
+                        # self.next_node_ids.append(u_id)
+                        # self.next_shard_ids.append(u_shard_id)
 
