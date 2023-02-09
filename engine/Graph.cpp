@@ -15,7 +15,7 @@ template <class VertexProp, class EdgeProp>
     char csrShardIndicesFile[1024];
     char csrIndPtrsFile[1024];
     char edgeWeightsFile[1024];
-    char weightedDegreesFile[1024];
+    char csrWeightedDegreesFile[1024];
     char partitionBookFile[1024];    
 
     shardID = shardID_;
@@ -26,7 +26,7 @@ template <class VertexProp, class EdgeProp>
     snprintf(csrShardIndicesFile, 1024, "%s/csr_shards%d.txt", path, shardID);
     snprintf(csrIndPtrsFile, 1024, "%s/csr_indptr%d.txt", path, shardID);
     snprintf(edgeWeightsFile, 1024, "%s/csr_edge_weights_p%d", path, shardID);
-    snprintf(weightedDegreesFile, 1024, "%s/csr_weighted_degrees_p%d", path, shardID);
+    snprintf(csrWeightedDegreesFile, 1024, "%s/csr_weighted_degrees_p%d", path, shardID);
     snprintf(partitionBookFile, 1024, "%s/partition_book.txt", path);
     numCoreNodes = 0;
     numHaloNodes = 0;
