@@ -1,22 +1,33 @@
 #include <iostream>
 #include <vector>
 #include <ctime>
+#include <cstdio>
 #include <omp.h>
 #include "Graph.h"
 #include "utils.h"
 
 template <class VertexProp, class EdgeProp>
-    Graph<VertexProp, EdgeProp>::Graph(const ShardType shardID_,
-                                       const char *idsListFile,
-                                       const char *haloShardsListFile,
-                                       const char *csrIndicesFile,
-                                       const char *csrShardIndicesFile,
-                                       const char *csrIndPtrsFile,
-                                       const char *edgeWeightsFile,
-                                       const char *weightedDegreesFile,
-                                       const char *partitionBookFile
-                                       ){
+    Graph<VertexProp, EdgeProp>::Graph(const ShardType shardID_, const char *path){
+
+    char idsListFile[1024];
+    char haloShardsListFile[1024];
+    char csrIndicesFile[1024];
+    char csrShardIndicesFile[1024];
+    char csrIndPtrsFile[1024];
+    char edgeWeightsFile[1024];
+    char weightedDegreesFile[1024];
+    char partitionBookFile[1024];    
+
     shardID = shardID_;
+
+    snprintf(idsListFile, 1024, "%s/p%d_ids.txt", path, shardID);
+    snprintf(haloShardsListFile, 1024, "%s/p%d_halo_shards.txt", path, shardID);
+    snprintf(csrIndicesFile, 1024, "%s/csr_shards%d.txt", path, shardID);
+    snprintf(csrShardIndicesFile, 1024, "%s/csr_shards%d.txt", path, shardID);
+    snprintf(csrIndPtrsFile, 1024, "%s/csr_indptr%d.txt", path, shardID);
+    snprintf(edgeWeightsFile, 1024, "%s/?", path, shardID);
+    snprintf(weightedDegreesFile, 1024, "%s/?", path, shardID);
+    snprintf(partitionBookFile, 1024, "%s/partition_book.txt", path);
 
     numCoreNodes = 0;
     numHaloNodes = 0;
