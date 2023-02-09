@@ -14,8 +14,8 @@ class PPR{
         ShardType shardId;
         float alpha;
         float epsilon;
-        std::map<std::pair<VertexType,ShardType>>, float> p;
-        std::map<std::pair<VertexType,ShardType>>, float> r;
+        std::map<std::pair<VertexType,ShardType>, float> p;
+        std::map<std::pair<VertexType,ShardType>, float> r;
         std::map<std::pair<VertexType, ShardType>, std::tuple<VertexType, ShardType>> activatedNodes;
         // std::vector<VertexType> nextNodeIds;
         // std::vector<ShardType> nextShardIds;
