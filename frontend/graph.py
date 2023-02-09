@@ -12,16 +12,6 @@ SHARD_ID_TYPE = torch.int8
 
 
 def init_graph(path, shard_id):
-    # ids_file = 'p{}_ids.txt'
-    # shards_file = 'p{}_halo_shards.txt'
-    # csr_indices_file = 'csr_indices{}.txt'
-    # csr_shard_indices_file = 'csr_shards{}.txt'
-    # csr_indptrs_file = 'csr_indptr{}.txt'
-    # partition_book = osp.join(path, 'partition_book.txt')
-
-    # def _dir(filename):
-    #     return osp.join(path, filename.format(shard_id))
-
     return graph_engine.Graph(shard_id, path)
 
 
