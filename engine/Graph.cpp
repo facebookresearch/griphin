@@ -13,7 +13,7 @@ template <class VertexProp, class EdgeProp>
                                        const char *csrShardIndicesFile,
                                        const char *csrIndPtrsFile,
                                        const char *edgeWeightsFile,
-                                       const char *weightedDegreesFile,
+                                       const char *csrWeightedDegreesFile,
                                        const char *partitionBookFile
                                        ){
     shardID = shardID_;
@@ -45,25 +45,33 @@ template <class VertexProp, class EdgeProp>
     // read the csr indptrs file
     readFile(csrIndPtrsFile, &csrIndptrs, &dummy);
 
-    readFile(weightedDegreesFile, &weightedDegrees, &dummy, 1);
+    readFile(csrWeightedDegreesFile, &csrWeightedDegrees, &dummy, 1);
 
     readFile(edgeWeightsFile, &edgeWeights, &dummy, 1);
 
+//    for(VertexType i = 0; i < numCoreNodes; i++){
+//        auto neighborStartIndex = csrIndptrs[i];
+//        auto neighborEndIndex = csrIndptrs[i+1];
+//
+//        for(int n = neighborStartIndex; n < neighborEndIndex; n++){
+//            VertexType u = csrIndices[n];
+//            csrWeightedDegrees.push_back(weightedDegrees[u]);
+//        }
+//    }
+
     for(VertexType i = 0; i < numCoreNodes; i++){
         auto neighborStartIndex = csrIndptrs[i];
         auto neighborEndIndex = csrIndptrs[i+1];
 
-        for(int n = neighborStartIndex; n < neighborEndIndex; n++){
-            VertexType u = csrIndices[n];
-            csrWeightedDegrees.push_back(weightedDegrees[u]);
-        }
-    }
-
-    for(VertexType i = 0; i < numCoreNodes; i++){
-        auto neighborStartIndex = csrIndptrs[i];
-        auto neighborEndIndex = csrIndptrs[i+1];
-
-        vertexProps.push_back(VertexProp(i, shardID, neighborStartIndex, neighborEndIndex, weightedDegrees[i], csrWeightedDegrees.data(), edgeWeights.data(), csrIndices.data(), csrShardIndices.data()));
+        vertexProps.push_back(VertexProp(i,
+                                         shardID,
+                                         neighborStartIndex,
+                                         neighborEndIndex,
+                                         0,  // TODO: Skip weightedDegree for now
+                                         csrWeightedDegrees.data(),
+                                         edgeWeights.data(),
+                                         csrIndices.data(),
+                                         csrShardIndices.data()));
     }
 }
 

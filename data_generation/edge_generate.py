@@ -11,14 +11,15 @@ from scipy.sparse import csr_matrix
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 
+
 def edge_weights_generate():
-    dataset = DglNodePropPredDataset(name='ogbn-products')
+    dataset = DglNodePropPredDataset(name='ogbn-products', root='/data/gangda/dgl')
     g, labels = dataset[0]
     
     edge_weight = torch.rand(g.num_edges())
-    
+
     g_csr_format = csr_matrix((edge_weight, (g.edges()[0], g.edges()[1])), shape=(g.num_nodes(), g.num_nodes()))
-    
+
     weighted_degrees = []
 
     for i in tqdm(range(len(g_csr_format.indptr) - 1)):
@@ -31,7 +32,7 @@ def edge_weights_generate():
             weighted += g_csr_format.data[u]
 
         weighted_degrees.append(weighted)
-        
+
     neigbor_weighted_degrees = []
 
     for i in tqdm(range(len(g_csr_format.indptr) - 1)):
