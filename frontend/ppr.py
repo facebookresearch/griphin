@@ -16,7 +16,7 @@ def forward_push_single(rrefs, num_source, alpha, epsilon):
 
     source_ids = torch.randperm(local_shard.num_core_nodes)[:num_source]
     results = []
-    for epoch, target_id in enumerate(source_ids):
+    for epoch, target_id in enumerate([0]):
         ppr_model = SSPPR(target_id, rank, alpha, epsilon)
 
         iteration = 0

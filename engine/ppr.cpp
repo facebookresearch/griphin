@@ -25,7 +25,7 @@ std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> PPR::getP(){
     std::vector<ShardType> shardIds;
     std::vector<float> values;
 
-    for(std::map<std::pair<VertexType,ShardType>>, float>::iterator it = p.begin(); it != p.end(); ++it) {
+    for(std::map<std::pair<VertexType,ShardType>, float>::iterator it = p.begin(); it != p.end(); ++it) {
         nodeIds.push_back(std::get<0>(it->first));
         shardIds.push_back(std::get<1>(it->first));
         values.push_back(it->second);

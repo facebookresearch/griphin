@@ -77,7 +77,7 @@ def run(rank, args):
 if __name__ == '__main__':
     args = parser.parse_args()
     if len(args.file_path) == 0:
-        args.file_path = os.path.join(get_data_path(), 'ogbn_products_{}partitions'.format(args.num_machine))
+        args.file_path = os.path.join(get_data_path(), 'hz-ogbn-product-p{}'.format(args.num_machine))
 
     print('Spawn Multi-Process to simulate Multi-Machine scenario')
     start = time.time()

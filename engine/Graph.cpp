@@ -9,8 +9,8 @@
 template <class VertexProp, class EdgeProp>
     Graph<VertexProp, EdgeProp>::Graph(const ShardType shardID_, const char *path){
 
-    char idsListFile[1024]; // what is this? seems not used in later 
-    char haloShardsListFile[1024]; // what is this? seems not used in later 
+//    char idsListFile[1024]; // what is this? seems not used in later
+//    char haloShardsListFile[1024]; // what is this? seems not used in later
     char csrIndicesFile[1024]; // csr indices of local id
     char csrShardIndicesFile[1024]; // csr indices of shard id
     char csrIndPtrsFile[1024]; // csr indices pointer (core nodes only)
@@ -20,8 +20,8 @@ template <class VertexProp, class EdgeProp>
 
     shardID = shardID_;
 
-    snprintf(idsListFile, 1024, "%s/p%d_ids.txt", path, shardID);
-    snprintf(haloShardsListFile, 1024, "%s/p%d_halo_shards.txt", path, shardID);
+//    snprintf(idsListFile, 1024, "%s/p%d_ids.txt", path, shardID);
+//    snprintf(haloShardsListFile, 1024, "%s/p%d_halo_shards.txt", path, shardID);
     snprintf(csrIndicesFile, 1024, "%s/csr_indices%d.txt", path, shardID);
     snprintf(csrShardIndicesFile, 1024, "%s/csr_shards%d.txt", path, shardID);
     snprintf(csrIndPtrsFile, 1024, "%s/csr_indptr%d.txt", path, shardID);
@@ -40,10 +40,10 @@ template <class VertexProp, class EdgeProp>
 
     readFile(partitionBookFile, &partitionBook, &dummy);
 
-    readFile(idsListFile, &nodeIDs, &numNodes);
-
-    // reads the shard ids of the halo vertices.
-    readFile(haloShardsListFile, &haloNodeShards, &numHaloNodes);
+//    readFile(idsListFile, &nodeIDs, &numNodes);
+//
+//    // reads the shard ids of the halo vertices.
+//    readFile(haloShardsListFile, &haloNodeShards, &numHaloNodes);
 
     numCoreNodes = numNodes - numHaloNodes;
 
