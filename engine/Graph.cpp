@@ -45,7 +45,7 @@ template <class VertexProp, class EdgeProp>
 //    // reads the shard ids of the halo vertices.
 //    readFile(haloShardsListFile, &haloNodeShards, &numHaloNodes);
 
-    numCoreNodes = numNodes - numHaloNodes;
+//    numCoreNodes = numNodes - numHaloNodes;
 
     // read the csr indices file
     readFile(csrIndicesFile, &csrIndices, &numEdges);
@@ -56,19 +56,11 @@ template <class VertexProp, class EdgeProp>
     // read the csr indptrs file
     readFile(csrIndPtrsFile, &csrIndptrs, &dummy);
 
+    numCoreNodes = partitionBook[shardID+1] - partitionBook[shardID];
+
     readFile(csrWeightedDegreesFile, &csrWeightedDegrees, &dummy, 1);
 
     readFile(edgeWeightsFile, &edgeWeights, &dummy, 1);
-
-//    for(VertexType i = 0; i < numCoreNodes; i++){
-//        auto neighborStartIndex = csrIndptrs[i];
-//        auto neighborEndIndex = csrIndptrs[i+1];
-//
-//        for(int n = neighborStartIndex; n < neighborEndIndex; n++){
-//            VertexType u = csrIndices[n];
-//            csrWeightedDegrees.push_back(weightedDegrees[u]);
-//        }
-//    }
 
     for(VertexType i = 0; i < numCoreNodes; i++){
         auto neighborStartIndex = csrIndptrs[i];
@@ -78,7 +70,7 @@ template <class VertexProp, class EdgeProp>
                                          shardID,
                                          neighborStartIndex,
                                          neighborEndIndex,
-                                         0,  // TODO: Skip weightedDegree for now
+                                         0.5,  // TODO: Skip weightedDegree for now
                                          csrWeightedDegrees.data(),
                                          edgeWeights.data(),
                                          csrIndices.data(),

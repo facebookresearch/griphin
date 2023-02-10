@@ -11,17 +11,13 @@ VERTEX_ID_TYPE = torch.int32
 SHARD_ID_TYPE = torch.int8
 
 
-def init_graph(path, shard_id):
-    return graph_engine.Graph(shard_id, path)
-
-
 class GraphShard:
     """
     Front end wrapper for Graph.h
     """
     def __init__(self, path, shard_id):
         self.id = shard_id
-        self.g = init_graph(path, shard_id)
+        self.g = graph_engine.Graph(shard_id, path)
 
     @property
     def num_core_nodes(self):

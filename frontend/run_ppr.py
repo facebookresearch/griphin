@@ -11,8 +11,8 @@ from ppr import forward_push_single, forward_push_batch
 from utils import get_data_path
 from graph import GraphShard
 
-RUNS = 1
-WARMUP = 0
+RUNS = 10
+WARMUP = 3
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--num_machine', type=int, default=4, help='number of machines (simulated as processes)')
@@ -50,23 +50,23 @@ def run(rank, args):
 
             tik = time.perf_counter()
 
-            ppr_func_dict[args.version](rrefs, args.num_roots, args.alpha, args.epsilon)
+            # ppr_func_dict[args.version](rrefs, args.num_roots, args.alpha, args.epsilon, args.log)
 
-            # futs = []
-            # for rref in rrefs:
-            #     futs.append(
-            #         rpc.rpc_async(
-            #             rref.owner(),
-            #             ppr_func_dict[args.version],
-            #             args=(rrefs, args.num_roots, args.alpha, args.epsilon)
-            #         )
-            #     )
-            # c = []
-            # for fut in futs:
-            #     c.append(fut.wait())
+            futs = []
+            for rref in rrefs:
+                futs.append(
+                    rpc.rpc_async(
+                        rref.owner(),
+                        ppr_func_dict[args.version],
+                        args=(rrefs, args.num_roots, args.alpha, args.epsilon, args.log)
+                    )
+                )
+            c = []
+            for fut in futs:
+                c.append(fut.wait())
 
             tok = time.perf_counter()
-            print(f'Run {i}, Time = {tok - tik:.3f}s')
+            print(f'Run {i}, Time = {tok - tik:.3f}s\n')
 
         tok_ = time.perf_counter()
         print(f'Avg Execution time = {(tok_ - tik_)/RUNS:.3f}s')
@@ -85,4 +85,4 @@ if __name__ == '__main__':
     mp.spawn(run, nprocs=args.num_machine, args=(args,), join=True)
     end = time.time()
 
-    print(f'Total Execution time = {end - start:.3}s')
+    print(f'Total Execution time = {end - start:.3f}s')

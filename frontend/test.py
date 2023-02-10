@@ -79,12 +79,14 @@ def test6():
 
 
 def test7():
-    path = os.path.join(get_data_path(), 'ogbn_products_{}partitions'.format(4))
+    # path = os.path.join(get_data_path(), 'ogbn_products_{}partitions'.format(4))
+    path = os.path.join(get_data_path(), 'hz-ogbn-product-p{}'.format(4))
     t1 = time.time()
     gs = GraphShard(path, 0)
+    # print(gs.cluster_ptr)
     t2 = time.time()
     print(f'Graph loading time: {(t2-t1):.3f}')
-    print(gs.batch_fetch_neighbor_infos(torch.tensor([0], dtype=VERTEX_ID_TYPE)))
+    print(gs.batch_fetch_neighbor_infos(torch.tensor([1, 2], dtype=VERTEX_ID_TYPE)))
 
 
 if __name__ == '__main__':

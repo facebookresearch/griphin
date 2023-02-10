@@ -6,7 +6,7 @@ from torch.distributed import rpc
 from graph import GraphShard, SSPPR, VERTEX_ID_TYPE
 
 
-def forward_push_single(rrefs, num_source, alpha, epsilon):
+def forward_push_single(rrefs, num_source, alpha, epsilon, log=False):
     rank = rpc.get_worker_info().id
     local_shard: GraphShard = rrefs[rank].to_here()
 
@@ -16,7 +16,7 @@ def forward_push_single(rrefs, num_source, alpha, epsilon):
 
     source_ids = torch.randperm(local_shard.num_core_nodes)[:num_source]
     results = []
-    for epoch, target_id in enumerate([0]):
+    for epoch, target_id in enumerate(source_ids):
         ppr_model = SSPPR(target_id, rank, alpha, epsilon)
 
         iteration = 0
@@ -25,7 +25,8 @@ def forward_push_single(rrefs, num_source, alpha, epsilon):
             v_ids, v_shard_ids = ppr_model.pop_activated_nodes()
 
             iteration += 1
-            print('iter:', iteration, ', activated nodes:', len(v_ids))
+            if log and rank == 0:
+                print('iter:', iteration, ', activated nodes:', len(v_ids))
 
             if len(v_ids) == 0:
                 break
@@ -47,10 +48,15 @@ def forward_push_single(rrefs, num_source, alpha, epsilon):
 
         results.append(ppr_model.p)
 
+    if rank == 0:
+        print(f'Time fetch local: {time_fetch_neighbor_local:.3f}s, '
+              f'Time fetch remote: {time_fetch_neighbor_remote:.3f}s, '
+              f'Time push: {time_push:.3f}s')
+
     return results
 
 
-def forward_push_batch(rrefs, num_source, alpha, epsilon):
+def forward_push_batch(rrefs, num_source, alpha, epsilon, log=False):
     rank = rpc.get_worker_info().id
     local_shard: GraphShard = rrefs[rank].to_here()
     num_machines = len(rrefs)
@@ -107,6 +113,11 @@ def forward_push_batch(rrefs, num_source, alpha, epsilon):
             time_push += time.time() - tik
 
         results.append(ppr_model.p)
+
+    if rank == 0:
+        print(f'Time fetch local: {time_fetch_neighbor_local:.3f}s, '
+              f'Time fetch remote: {time_fetch_neighbor_remote:.3f}s, '
+              f'Time push: {time_push:.3f}s')
 
     return results
 
