@@ -66,6 +66,22 @@ def key_str(node_id, shard_id):
     return '{}_{}'.format(node_id, shard_id)
 
 
+class PPR:
+    """
+        Front end wrapper for PPR.h
+    """
+    def __init__(self, target_id, shard_id, alpha, epsilon):
+        self.ppr = graph_engine.PPR(target_id, shard_id, alpha, epsilon)
+
+
+    def pop_activated_nodes(self) -> Tuple[Tensor, Tensor]:
+        node_ids, shard_ids = self.ppr.pop_activated_nodes()
+        return node_ids, shard_ids
+
+    def push(self, neighbor_infos: List, v_ids: Tensor, v_shard_ids: Tensor):
+        self.ppr.push(neighbor_infos, v_ids, v_shard_ids)
+
+
 class SSPPR:
     """
         Front end wrapper for SSPPR.h

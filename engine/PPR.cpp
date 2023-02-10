@@ -1,4 +1,4 @@
-#include "ppr.h"
+#include "PPR.h"
 
 PPR::PPR(VertexType targetId_, ShardType shardId_, float alpha_, float epsilon_){
     targetId = targetId_;
@@ -37,7 +37,7 @@ std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> PPR::getP(){
     torch::Tensor torchNodeIds = torch::from_blob(nodeIds.data(), {len}, opts);
     torch::Tensor torchShardIds = torch::from_blob(shardIds.data(), {len}, opts);
 
-    auto opts = torch::TensorOptions().dtype(torch::kFloat32);
+    opts = torch::TensorOptions().dtype(torch::kFloat32);
     torch::Tensor torchValues = torch::from_blob(values.data(), {len}, opts);
 
     return std::make_tuple(torchNodeIds, torchShardIds, torchValues);
@@ -48,7 +48,7 @@ std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> PPR::getR(){
     std::vector<ShardType> shardIds;
     std::vector<float> values;
 
-    for(std::map<std::pair<VertexType,ShardType>>, float>::iterator it = r.begin(); it != r.end(); ++it) {
+    for(std::map<std::pair<VertexType,ShardType>, float>::iterator it = r.begin(); it != r.end(); ++it) {
         nodeIds.push_back(std::get<0>(it->first));
         shardIds.push_back(std::get<1>(it->first));
         values.push_back(it->second);
@@ -60,7 +60,7 @@ std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> PPR::getR(){
     torch::Tensor torchNodeIds = torch::from_blob(nodeIds.data(), {len}, opts);
     torch::Tensor torchShardIds = torch::from_blob(shardIds.data(), {len}, opts);
 
-    auto opts = torch::TensorOptions().dtype(torch::kFloat32);
+    opts = torch::TensorOptions().dtype(torch::kFloat32);
     torch::Tensor torchValues = torch::from_blob(values.data(), {len}, opts);
 
     return std::make_tuple(torchNodeIds, torchShardIds, torchValues);
@@ -111,27 +111,27 @@ std::tuple<torch::Tensor, torch::Tensor> PPR::pop_activated_nodes(){
 void PPR::push(std::vector<std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor>> neighborInfos_, torch::Tensor v_ids_, torch::Tensor v_shard_ids_){
     VertexType size = neighborInfos_.size();
     for(int i = 0; i < size; i++){
-        torch::Tensor uIds std::get<0>(neighborInfos_[i]);
-        torch::Tensor uShardIds std::get<1>(neighborInfos_[i]);
-        torch::Tensor uWeights std::get<2>(neighborInfos_[i]);
-        torch::Tensor uDegrees std::get<3>(neighborInfos_[i]);
+        torch::Tensor uIds = std::get<0>(neighborInfos_[i]);
+        torch::Tensor uShardIds = std::get<1>(neighborInfos_[i]);
+        torch::Tensor uWeights = std::get<2>(neighborInfos_[i]);
+        torch::Tensor uDegrees = std::get<3>(neighborInfos_[i]);
 
-        auto vId = v_ids_[i];
-        auto vShardId = v_shard_ids_[i];
+        VertexType vId = v_ids_[i].item<VertexType>();
+        ShardType vShardId = v_shard_ids_[i].item<ShardType>();
 
         auto vKey = std::make_pair(vId, vShardId);
         p[vKey] += alpha * r[vKey];
-        torch::Tensor uVals = (1 - alpha) * r[vKey] * uWeights / uWeights.sum(std::vector<int64_t>({0, uWeights.sizes()[0]}))
+        torch::Tensor uVals = (1 - alpha) * r[vKey] * uWeights / uWeights.sum(std::vector<int64_t>({0, uWeights.sizes()[0]}));
         r[vKey] = 0.;
-        activatedNodes.erase(std::find(activatedNodes.begin(),activatedNodes.end(), vKey));
+        activatedNodes.erase(activatedNodes.find(vKey));
 
         auto uSize = uIds.sizes()[0];
 
         for(int j = 0; j < uSize; j++){
-            auto val = uVals[j];
-            auto uId = uIds[j];
-            auto uShardId = uShardIds[j];
-            auto uDegree = uDegrees[j];
+            auto val = uVals[j].item<float>();
+            auto uId = uIds[j].item<VertexType>();
+            auto uShardId = uShardIds[j].item<ShardType>();
+            auto uDegree = uDegrees[j].item<float>();
 
             auto uKey = std::make_pair(uId, uShardId);
 
@@ -141,11 +141,11 @@ void PPR::push(std::vector<std::tuple<torch::Tensor, torch::Tensor, torch::Tenso
             r[uKey] += val;
 
             if(r[uKey] >= epsilon * uDegree){
-                auto it = std::find(activatedNodes.begin(), activatedNodes.end(), uKey);
+                auto it = activatedNodes.find(uKey);
                 if(it == activatedNodes.end()){
-                    activatedNodes.push_back(uKey);
-                    nextNodeIds.push_back(uId);
-                    nextShardIds.push_back(uShardId);
+                    activatedNodes[uKey] = std::make_tuple(uId, uShardId);
+                    // nextNodeIds.push_back(uId);
+                    // nextShardIds.push_back(uShardId);
                 }
             }
         }

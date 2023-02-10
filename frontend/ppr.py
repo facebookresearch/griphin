@@ -3,7 +3,56 @@ import time
 import torch
 from torch.distributed import rpc
 
-from graph import GraphShard, SSPPR, VERTEX_ID_TYPE
+from graph import GraphShard, SSPPR, PPR, VERTEX_ID_TYPE
+
+def cpp_push(rrefs, num_source, alpha, epsilon, log=False):
+    rank = rpc.get_worker_info().id
+    local_shard: GraphShard = rrefs[rank].to_here()
+
+    time_fetch_neighbor_local = 0
+    time_fetch_neighbor_remote = 0
+    time_push = 0
+
+    source_ids = torch.randperm(local_shard.num_core_nodes)[:num_source]
+    results = []
+    for epoch, target_id in enumerate(source_ids):
+        ppr_model = PPR(target_id, rank, alpha, epsilon)
+
+        iteration = 0
+
+        while True:
+            v_ids, v_shard_ids = ppr_model.pop_activated_nodes()
+
+            iteration += 1
+            if log and rank == 0:
+                print('iter:', iteration, ', activated nodes:', len(v_ids))
+
+            if len(v_ids) == 0:
+                break
+
+            for v_id, v_shard_id in zip(v_ids.tolist(), v_shard_ids.tolist()):
+                v_id_ = torch.tensor([v_id], dtype=VERTEX_ID_TYPE)
+
+                tik = time.time()
+                if v_shard_id == rank:
+                    neighbor_infos = local_shard.batch_fetch_neighbor_infos(v_id_)
+                    time_fetch_neighbor_local += time.time() - tik
+                else:
+                    neighbor_infos = rrefs[v_shard_id].rpc_sync().batch_fetch_neighbor_infos(v_id_)
+                    time_fetch_neighbor_remote += time.time() - tik
+
+                tik = time.time()
+                ppr_model.push(neighbor_infos, v_id_, torch.tensor([v_shard_id]))
+                time_push += time.time() - tik
+
+        results.append(ppr_model.p)
+
+    if rank == 0:
+        print(f'Time fetch local: {time_fetch_neighbor_local:.3f}s, '
+              f'Time fetch remote: {time_fetch_neighbor_remote:.3f}s, '
+              f'Time push: {time_push:.3f}s')
+
+    return results
 
 
 def forward_push_single(rrefs, num_source, alpha, epsilon, log=False):

@@ -4,6 +4,7 @@
 #include "EdgeProp.cpp"
 #include "VertexProp.cpp"
 #include "SharedMemoryVector.cpp"
+#include "PPR.cpp"
 #include <vector>
 #include <omp.h>
 
@@ -41,6 +42,11 @@ PYBIND11_MODULE(graph_engine, m) {
     .def("partition_book", &Graph<VertexProp, EdgeProp>::getPartitionBook)
     .def("get_neighbor_lists", &Graph<VertexProp, EdgeProp>::getNeighborLists)
     .def("get_neighbor_infos", &Graph<VertexProp, EdgeProp>::getNeighborInfos);
+
+    py::class_<PPR>(m, "PPR")
+    .def(py::init<VertexType, ShardType, float, float>())
+    .def("pop_activated_nodes", &PPR::pop_activated_nodes)
+    .def("push", &PPR::push);
 
     m.def("omp_add", &omp_test, "A function that adds b in to a for 10 times");
 }
