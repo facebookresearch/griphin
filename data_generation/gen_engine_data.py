@@ -76,3 +76,6 @@ for i in range(len(parts)):
     csr_indices_weighted_degree = g.ndata['weighted_degree'][csr_indices_globalid]
     to_file(args.path, 'csr_edge_weights_p{}.txt'.format(i), csr_indices_weights)
     to_file(args.path, 'csr_weighted_degrees_p{}.txt'.format(i), csr_indices_weighted_degree)
+
+# change group owner of written files
+os.system('chown -R :meta_research {}', args.path)
