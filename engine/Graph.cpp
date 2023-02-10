@@ -25,8 +25,8 @@ template <class VertexProp, class EdgeProp>
     snprintf(csrIndicesFile, 1024, "%s/csr_indices%d.txt", path, shardID);
     snprintf(csrShardIndicesFile, 1024, "%s/csr_shards%d.txt", path, shardID);
     snprintf(csrIndPtrsFile, 1024, "%s/csr_indptr%d.txt", path, shardID);
-    snprintf(edgeWeightsFile, 1024, "%s/csr_edge_weights_p%d", path, shardID);
-    snprintf(csrWeightedDegreesFile, 1024, "%s/csr_weighted_degrees_p%d", path, shardID);
+    snprintf(edgeWeightsFile, 1024, "%s/csr_edge_weights_p%d.txt", path, shardID);
+    snprintf(csrWeightedDegreesFile, 1024, "%s/csr_weighted_degrees_p%d.txt", path, shardID);
     snprintf(partitionBookFile, 1024, "%s/partition_book.txt", path);
 
     numCoreNodes = 0;
@@ -52,7 +52,7 @@ template <class VertexProp, class EdgeProp>
 
     // read the csr shard indices file
     readFile(csrShardIndicesFile, &csrShardIndices, &dummy);
-    
+
     // read the csr indptrs file
     readFile(csrIndPtrsFile, &csrIndptrs, &dummy);
 

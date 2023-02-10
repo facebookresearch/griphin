@@ -30,7 +30,7 @@ inline void readFile(const char *fileName, std::vector<T> *vec, int64_t *counter
         file.close();
     }
     else{
-        std::cout << "Unable to open the file!" << std::endl;
+        std::cout << "Unable to open the file:" << fileName << std::endl;
     }
 }
 
