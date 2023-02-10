@@ -39,7 +39,7 @@ for i in range(len(parts)):
     part = parts[i]
 
     core_mask = part.ndata['inner_node'].type(torch.bool)
-    part_global_id = part.ndata['_ID']
+    part_global_id = part.ndata['orig_id']
     part_core_global_id = part_global_id[core_mask]
 
     globalid_to_localid[part_core_global_id] = torch.arange(part_core_global_id.shape[0])
@@ -58,11 +58,11 @@ for i in range(len(parts)):
     csr = part.adj_sparse('csr')
     
     csr_indptr = csr[0][:num_core_nodes + 1]
-    csr_indices_localid = csr[1][:csr_indptr[-1]]
-    csr_indices_globalid = part.ndata['_ID'][csr_indices_localid]
     to_file(args.path, 'csr_indptr{}.txt'.format(i), csr_indptr)
     
     # convert to graph engine format
+    csr_indices_localid = csr[1][:csr_indptr[-1]]
+    csr_indices_globalid = part.ndata['orig_id'][csr_indices_localid]
     csr_indices_engine_localid = globalid_to_localid[csr_indices_globalid]
     csr_indices_engine_shardid = globalid_to_shardid[csr_indices_globalid]
     to_file(args.path, 'csr_indices{}.txt'.format(i), csr_indices_engine_localid)
