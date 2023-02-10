@@ -14,8 +14,8 @@ def forward_push_single(rrefs, num_source, alpha, epsilon, log=False):
     time_fetch_neighbor_remote = 0
     time_push = 0
 
-    source_ids = torch.randperm(local_shard.num_core_nodes)[:num_source]
     results = []
+    source_ids = torch.randperm(local_shard.num_core_nodes)[:num_source]
     for epoch, target_id in enumerate(source_ids):
         ppr_model = SSPPR(target_id, rank, alpha, epsilon)
 
@@ -65,18 +65,21 @@ def forward_push_batch(rrefs, num_source, alpha, epsilon, log=False):
     time_fetch_neighbor_remote = 0
     time_push = 0
 
-    source_ids = torch.randperm(local_shard.num_core_nodes)[:num_source]
     results = []
+    source_ids = torch.randperm(local_shard.num_core_nodes)[:num_source]
     for epoch, target_id in enumerate(source_ids):
         ppr_model = SSPPR(target_id, rank, alpha, epsilon)
 
-        iteration = 0
+        if log and rank == 0:
+            print('\nEpoch:', epoch)
+            iteration = 0
 
         while True:
             v_ids, v_shard_ids = ppr_model.pop_activated_nodes()
 
-            iteration += 1
-            print('iter:', iteration, ', activated nodes:', len(v_ids))
+            if log and rank == 0:
+                iteration += 1
+                print('iter:', iteration, ', activated nodes:', len(v_ids))
 
             if len(v_ids) == 0:
                 break
@@ -109,7 +112,8 @@ def forward_push_batch(rrefs, num_source, alpha, epsilon, log=False):
             # push to neighborhood from local shard
             ppr_model.push(local_neighbor_infos, v_ids_dict[rank], v_shard_ids_dict[rank])
             # push to neighborhood from remote shard
-            ppr_model.push(remote_infos, torch.cat(remote_v_ids), torch.cat(remote_shard_ids))
+            if len(remote_infos) > 0:
+                ppr_model.push(remote_infos, torch.cat(remote_v_ids), torch.cat(remote_shard_ids))
             time_push += time.time() - tik
 
         results.append(ppr_model.p)

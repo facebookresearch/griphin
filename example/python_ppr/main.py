@@ -75,6 +75,10 @@ def approx_ppr(graph_rrefs):
     cluster_ptr = torch.tensor([0, 613761, 1236365, 1838296, 2449029])  # TODO: ogbn_products
     num_nodes = cluster_ptr[-1]
 
+    time_fetch_neighbor_local = 0
+    time_fetch_neighbor_remote = 0
+    time_push = 0
+
     ssppr_list = []
     local_sources = torch.randperm(local_shard.num_core_nodes)[:NUM_SOURCE] + cluster_ptr[rank]
     for epoch, target_id in enumerate(local_sources):
@@ -116,19 +120,35 @@ def approx_ppr(graph_rrefs):
                 v_out_j = v_idx[j_mask] - cluster_ptr[j]
                 futs[j] = graph_rrefs[j].rpc_async().batch_fetch_neighbor_list(v_out_j)
 
+            tik = time.time()
             v_out_local = v_idx[shard_masks[rank]] - cluster_ptr[rank]
             local_neighbor_infos = local_shard.batch_fetch_neighbor_list(v_out_local)
-            push(local_neighbor_infos, m_v[shard_masks[rank]])
+            time_fetch_neighbor_local += time.time() - tik
 
+            # push(local_neighbor_infos, m_v[shard_masks[rank]])
+
+            tik = time.time()
+            infos = {}
             for j, fut in futs.items():
-                infos = fut.wait()
-                push(infos, m_v[shard_masks[j]])
+                infos[j] = fut.wait()
+            time_fetch_neighbor_remote += time.time() - tik
+
+            tik = time.time()
+            push(local_neighbor_infos, m_v[shard_masks[rank]])
+            for j, info in infos.items():
+                push(info, m_v[shard_masks[j]])
+            time_push += time.time() - tik
 
         if LOG:
             print(f'\nEpoch: {epoch}, Rank{rank}, NNZ = {(p > 0).sum().item()} \n')
         ssppr_list.append(p)
 
-    return ssppr_list
+    if rank == 0:
+        print(f'Time fetch local: {time_fetch_neighbor_local:.3f}s, '
+              f'Time fetch remote: {time_fetch_neighbor_remote:.3f}s, '
+              f'Time push: {time_push:.3f}s')
+
+    return ssppr_list, time_fetch_neighbor_local, time_fetch_neighbor_remote, time_push
 
 
 def power_iter_ppr(P_w, target_id_, alpha_, epsilon_, max_iter):
@@ -168,6 +188,10 @@ def run(rank):
         # degree = torch.load(osp.join(PROCESSED_DIR, FILENAME2))
         # norm_adj_t = data.adj_t * degree.pow(-1).view(1, -1)
 
+        time_local_fetch = 0
+        time_remote_fetch = 0
+        time_push = 0
+
         for i in range(RUNS + WARMUP):
             if i == WARMUP:
                 tik_ = time.time()
@@ -188,8 +212,14 @@ def run(rank):
                     )
                 )
             c = []
-            for fut in futs:
-                c.append(fut.wait())
+            for j, fut in enumerate(futs):
+                res = fut.wait()
+                c.append(res[0])
+
+                if j == 0 and i >= WARMUP:
+                    time_local_fetch += res[1]
+                    time_remote_fetch += res[2]
+                    time_push += res[3]
 
             tok = time.time()
 
@@ -199,6 +229,11 @@ def run(rank):
             #       f' MAE: {(abs(approx_p - base_p)).sum().item() / data.num_nodes:.3e}')
 
         tok_ = time.time()
+
+        print(f'Avg Time fetch local: {time_local_fetch/RUNS:.3f}s, '
+              f'Avg Time fetch remote: {time_remote_fetch/RUNS:.3f}s, '
+              f'Avg Time push: {time_push/RUNS:.3f}s')
+
         print(f'Avg Execution time = {(tok_ - tik_)/RUNS:.3f}s')
 
     rpc.shutdown()
