@@ -112,7 +112,7 @@ class SSPPR:
             node_ids.append(nid)
             shard_ids.append(sid)
         self.activated_nodes.clear()
-        return torch.tensor(node_ids), torch.tensor(shard_ids)
+        return torch.tensor(node_ids, dtype=VERTEX_ID_TYPE), torch.tensor(shard_ids)
 
     def push(self, neighbor_infos: List, v_ids: Tensor, v_shard_ids: Tensor):
         for u_info, v_id, v_shard_id in zip(neighbor_infos, v_ids, v_shard_ids):
