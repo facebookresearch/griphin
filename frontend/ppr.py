@@ -22,7 +22,7 @@ def cpp_push(rrefs, num_source, alpha, epsilon, log=False):
 
         while True:
             v_ids, v_shard_ids = ppr_model.pop_activated_nodes()
-
+            # print("After pop 1", v_ids, v_shard_ids)
             iteration += 1
             if log and rank == 0:
                 print('iter:', iteration, ', activated nodes:', len(v_ids))
@@ -42,10 +42,11 @@ def cpp_push(rrefs, num_source, alpha, epsilon, log=False):
                     time_fetch_neighbor_remote += time.time() - tik
 
                 tik = time.time()
+
                 ppr_model.push(neighbor_infos, v_id_, torch.tensor([v_shard_id]))
                 time_push += time.time() - tik
 
-        results.append(ppr_model.p)
+        results.append(ppr_model.get_p()[2])
 
     if rank == 0:
         print(f'Time fetch local: {time_fetch_neighbor_local:.3f}s, '

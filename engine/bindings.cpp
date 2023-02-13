@@ -45,8 +45,9 @@ PYBIND11_MODULE(graph_engine, m) {
 
     py::class_<PPR>(m, "PPR")
     .def(py::init<VertexType, ShardType, float, float>())
-    .def("pop_activated_nodes", &PPR::pop_activated_nodes)
-    .def("push", &PPR::push);
+    .def("pop_activated_nodes", &PPR::popActivatedNodes)
+    .def("push", &PPR::push)
+    .def("get_p", &PPR::getP);
 
     m.def("omp_add", &omp_test, "A function that adds b in to a for 10 times");
 }

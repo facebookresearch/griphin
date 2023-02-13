@@ -26,10 +26,10 @@ class PPR{
         VertexType getTargetId();
         ShardType getShardId();
         std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> getP();
-        std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> getR();
-        std::tuple<torch::Tensor, torch::Tensor> getActivatedNodes();
+        // std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> getR();
+        // std::tuple<torch::Tensor, torch::Tensor> getActivatedNodes();
 
-        std::tuple<torch::Tensor, torch::Tensor> pop_activated_nodes();
+        std::tuple<torch::Tensor, torch::Tensor> popActivatedNodes();
         void push(std::vector<std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor>> neighborInfos_, torch::Tensor v_ids_, torch::Tensor v_shard_ids_);
 };
 

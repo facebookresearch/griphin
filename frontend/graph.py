@@ -81,6 +81,8 @@ class PPR:
     def push(self, neighbor_infos: List, v_ids: Tensor, v_shard_ids: Tensor):
         self.ppr.push(neighbor_infos, v_ids, v_shard_ids)
 
+    def get_p(self):
+        return self.ppr.get_p()
 
 class SSPPR:
     """
