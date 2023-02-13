@@ -118,11 +118,8 @@ void PPR::push(std::vector<std::tuple<torch::Tensor, torch::Tensor, torch::Tenso
         torch::Tensor uWeights = std::get<2>(neighborInfos_[i]);
         torch::Tensor uDegrees = std::get<3>(neighborInfos_[i]);
 
-
         VertexType vId = v_ids_[i].item<VertexType>();
         ShardType vShardId = v_shard_ids_[i].item<ShardType>();
-
-
 
         auto vKey = std::make_pair(vId, vShardId);
         p[vKey] += alpha * r[vKey];

@@ -73,7 +73,6 @@ class PPR:
     def __init__(self, target_id, shard_id, alpha, epsilon):
         self.ppr = graph_engine.PPR(target_id, shard_id, alpha, epsilon)
 
-
     def pop_activated_nodes(self) -> Tuple[Tensor, Tensor]:
         node_ids, shard_ids = self.ppr.pop_activated_nodes()
         return node_ids, shard_ids
@@ -83,6 +82,7 @@ class PPR:
 
     def get_p(self):
         return self.ppr.get_p()
+
 
 class SSPPR:
     """
