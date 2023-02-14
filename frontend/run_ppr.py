@@ -51,20 +51,20 @@ def run(rank, args):
 
             tik = time.perf_counter()
 
-            ppr_func_dict[args.version](rrefs, args.num_roots, args.alpha, args.epsilon, args.log)
+            # ppr_func_dict[args.version](rrefs, args.num_roots, args.alpha, args.epsilon, args.log)
 
-            # futs = []
-            # for rref in rrefs:
-            #     futs.append(
-            #         rpc.rpc_async(
-            #             rref.owner(),
-            #             ppr_func_dict[args.version],
-            #             args=(rrefs, args.num_roots, args.alpha, args.epsilon, args.log)
-            #         )
-            #     )
-            # c = []
-            # for fut in futs:
-            #     c.append(fut.wait())
+            futs = []
+            for rref in rrefs:
+                futs.append(
+                    rpc.rpc_async(
+                        rref.owner(),
+                        ppr_func_dict[args.version],
+                        args=(rrefs, args.num_roots, args.alpha, args.epsilon, args.log)
+                    )
+                )
+            c = []
+            for fut in futs:
+                c.append(fut.wait())
 
             tok = time.perf_counter()
             print(f'Run {i}, Time = {tok - tik:.3f}s\n')

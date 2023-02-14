@@ -75,13 +75,29 @@ class PPR:
 
 
     def pop_activated_nodes(self) -> Tuple[Tensor, Tensor]:
+        """
+        after this operation, activated nodes is reset 
+
+        :return:
+            - node_ids: node ids of the activated nodes are returned
+            - shards_ids: shard ids of the activated nodes are returned
+        """
         node_ids, shard_ids = self.ppr.pop_activated_nodes()
         return node_ids, shard_ids
 
     def push(self, neighbor_infos: List, v_ids: Tensor, v_shard_ids: Tensor):
+        """
+        :param neighbor_infos list: Neighbor infos is a list of list holding neighbor information of v_ids [indices, shards, edge_weight, weighted_degree]
+        :param v_ids Tensor: ids of the nodes to be pushed
+        :param v_shard_ids Tensor: corresponding shard ids of v_ids
+        """
         self.ppr.push(neighbor_infos, v_ids, v_shard_ids)
 
     def get_p(self):
+        """
+        :return: 
+            -self.ppr.get_p() is the current p values of PPR class
+        """
         return self.ppr.get_p()
 
 class SSPPR:
@@ -96,16 +112,9 @@ class SSPPR:
         self.r = defaultdict(float)
         self.r[key_str(target_id, shard_id)] = 1
 
-        # self.activated_nodes = OrderedDict({self.key_str.format(target_id, shard_id): (target_id, shard_id)})
         self.activated_nodes = {key_str(target_id, shard_id): (target_id, shard_id)}
-        # self.next_node_ids = [target_id]
-        # self.next_shard_ids = [shard_id]
 
     def pop_activated_nodes(self) -> Tuple[Tensor, Tensor]:
-        # node_ids, shard_ids = self.next_node_ids, self.next_shard_ids
-        # self.next_node_ids, self.next_shard_ids = [], []
-        # self.activated_nodes.clear()
-        # return torch.tensor(node_ids), torch.tensor(shard_ids)
 
         node_ids, shard_ids = [], []
         for nid, sid in self.activated_nodes.values():
@@ -132,6 +141,4 @@ class SSPPR:
                 if self.r[u_key] >= self.epsilon * u_degree:
                     if u_key not in self.activated_nodes.keys():
                         self.activated_nodes[u_key] = (u_id, u_shard_id)
-                        # self.next_node_ids.append(u_id)
-                        # self.next_shard_ids.append(u_shard_id)
 
