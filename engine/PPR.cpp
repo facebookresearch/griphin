@@ -113,54 +113,58 @@ std::tuple<torch::Tensor, torch::Tensor> PPR::popActivatedNodes(){
 void PPR::push(std::vector<std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor>> neighborInfos_, torch::Tensor v_ids_, torch::Tensor v_shard_ids_){
     VertexType size = neighborInfos_.size();
 
-    for(int i = 0; i < size; i++){
-        torch::Tensor uIds = std::get<0>(neighborInfos_[i]);
-        torch::Tensor uShardIds = std::get<1>(neighborInfos_[i]);
-        torch::Tensor uWeights = std::get<2>(neighborInfos_[i]);
-        torch::Tensor uDegrees = std::get<3>(neighborInfos_[i]);
+    #pragma omp parallel default(none) shared(size, neighborInfos_, v_ids_, v_shard_ids_)
+    {
+        #pragma omp for schedule(static)
 
-        VertexType vId = v_ids_[i].item<VertexType>();
-        ShardType vShardId = v_shard_ids_[i].item<ShardType>();
+        for(int i = 0; i < size; i++){
+            torch::Tensor uIds = std::get<0>(neighborInfos_[i]);
+            torch::Tensor uShardIds = std::get<1>(neighborInfos_[i]);
+            torch::Tensor uWeights = std::get<2>(neighborInfos_[i]);
+            torch::Tensor uDegrees = std::get<3>(neighborInfos_[i]);
 
-        auto vKey = std::make_pair(vId, vShardId);
-        p[vKey] += alpha * r[vKey];
+            VertexType vId = v_ids_[i].item<VertexType>();
+            ShardType vShardId = v_shard_ids_[i].item<ShardType>();
 
-        // float uWeightsSum = 0;
-        // for(int j = 0; j < uWeights.numel(); j++){
-        //     uWeightsSum += uWeights[j].item<float>();
-        // }
+            auto vKey = std::make_pair(vId, vShardId);
+            p[vKey] += alpha * r[vKey];
 
-        torch::Tensor uVals = (1 - alpha) * r[vKey] * uWeights / uWeights.sum();
-        r[vKey] = 0.;
+            torch::Tensor uVals = (1 - alpha) * r[vKey] * uWeights / uWeights.sum();
+            r[vKey] = 0.;
 
-        std::map<std::pair<VertexType, ShardType>, std::tuple<VertexType, ShardType>>::iterator it = activatedNodes.find(vKey);
-        if (it != activatedNodes.end())
-            activatedNodes.erase (it);
+            std::map<std::pair<VertexType, ShardType>, std::tuple<VertexType, ShardType>>::iterator it = activatedNodes.find(vKey);
+            if (it != activatedNodes.end())
+                activatedNodes.erase (it);
 
-        auto uSize = uIds.sizes()[0];
+            auto uSize = uIds.sizes()[0];
 
-        for(int j = 0; j < uSize; j++){
-            auto val = uVals[j].item<float>();
-            auto uId = uIds[j].item<VertexType>();
-            auto uShardId = uShardIds[j].item<ShardType>();
-            auto uDegree = uDegrees[j].item<float>();
+            // #pragma omp parallel default(none) shared(uSize, uVals, uIds, uShardIds, uDegrees)
+            // {
+            //    #pragma omp for schedule(static)
 
-            auto uKey = std::make_pair(uId, uShardId);
+                for(int j = 0; j < uSize; j++){
+                    auto val = uVals[j].item<float>();
+                    auto uId = uIds[j].item<VertexType>();
+                    auto uShardId = uShardIds[j].item<ShardType>();
+                    auto uDegree = uDegrees[j].item<float>();
 
-            if(j == 0)
-                r[uKey] = 0;
+                    auto uKey = std::make_pair(uId, uShardId);
 
-            r[uKey] += val;
+                    if(j == 0)
+                        r[uKey] = 0;
 
-            if(r[uKey] >= epsilon * uDegree){
-                auto it = activatedNodes.find(uKey);
-                if(it == activatedNodes.end()){
-                    activatedNodes[uKey] = std::make_tuple(uId, uShardId);
-                    // nextNodeIds.push_back(uId);
-                    // nextShardIds.push_back(uShardId);
+                    r[uKey] += val;
+
+                    if(r[uKey] >= epsilon * uDegree){
+                        auto it = activatedNodes.find(uKey);
+                        if(it == activatedNodes.end()){
+                            activatedNodes[uKey] = std::make_tuple(uId, uShardId);
+                            // nextNodeIds.push_back(uId);
+                            // nextShardIds.push_back(uShardId);
+                        }
+                    }
                 }
-            }
         }
-
+        // }
     }
 }
