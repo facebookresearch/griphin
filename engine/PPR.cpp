@@ -1,4 +1,5 @@
 #include "PPR.h"
+#include <omp.h>
 
 PPR::PPR(VertexType targetId_, ShardType shardId_, float alpha_, float epsilon_){
     targetId = targetId_;
