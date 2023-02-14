@@ -9,8 +9,6 @@ PPR::PPR(VertexType targetId_, ShardType shardId_, float alpha_, float epsilon_)
 
     r[std::make_pair(targetId, shardId)] = 1.;
     activatedNodes[std::make_pair(targetId, shardId)] = std::make_tuple(targetId, shardId);
-    // nextNodeIds.push_back(targetId);
-    // nextShardIds.push_back(shardId);
 }
 
 VertexType PPR::getTargetId(){
@@ -98,13 +96,9 @@ std::tuple<torch::Tensor, torch::Tensor> PPR::popActivatedNodes(){
     }
 
     activatedNodes.clear();
-    //nextNodeIds.clear();
-    //nextShardIds.clear();
 
     torch::Tensor torchNodeIds = torch::from_blob(nodeIds->data(), {len}, torch::kInt32);
     torch::Tensor torchShardIds = torch::from_blob(shardIds->data(), {len}, torch::kInt8);
-
-    // printf("in c++: %d %d \n", (*nodeIds)[0], (*shardIds)[0]);
 
     return std::make_tuple(torchNodeIds, torchShardIds);
 }
@@ -113,58 +107,50 @@ std::tuple<torch::Tensor, torch::Tensor> PPR::popActivatedNodes(){
 void PPR::push(std::vector<std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor>> neighborInfos_, torch::Tensor v_ids_, torch::Tensor v_shard_ids_){
     VertexType size = neighborInfos_.size();
 
-    #pragma omp parallel default(none) shared(size, neighborInfos_, v_ids_, v_shard_ids_)
-    {
-        #pragma omp for schedule(static)
+    // #pragma omp parallel for default(none) schedule(static) num_threads(2) shared(size, neighborInfos_, v_ids_, v_shard_ids_, activatedNodes)
+    for(int i = 0; i < size; i++){
+        torch::Tensor uIds = std::get<0>(neighborInfos_[i]);
+        torch::Tensor uShardIds = std::get<1>(neighborInfos_[i]);
+        torch::Tensor uWeights = std::get<2>(neighborInfos_[i]);
+        torch::Tensor uDegrees = std::get<3>(neighborInfos_[i]);
 
-        for(int i = 0; i < size; i++){
-            torch::Tensor uIds = std::get<0>(neighborInfos_[i]);
-            torch::Tensor uShardIds = std::get<1>(neighborInfos_[i]);
-            torch::Tensor uWeights = std::get<2>(neighborInfos_[i]);
-            torch::Tensor uDegrees = std::get<3>(neighborInfos_[i]);
+        VertexType vId = v_ids_[i].item<VertexType>();
+        ShardType vShardId = v_shard_ids_[i].item<ShardType>();
 
-            VertexType vId = v_ids_[i].item<VertexType>();
-            ShardType vShardId = v_shard_ids_[i].item<ShardType>();
+        auto vKey = std::make_pair(vId, vShardId);
+        p[vKey] += alpha * r[vKey];
 
-            auto vKey = std::make_pair(vId, vShardId);
-            p[vKey] += alpha * r[vKey];
+        torch::Tensor uVals = (1 - alpha) * r[vKey] * uWeights / uWeights.sum();
+        r[vKey] = 0.;
 
-            torch::Tensor uVals = (1 - alpha) * r[vKey] * uWeights / uWeights.sum();
-            r[vKey] = 0.;
+        std::map<std::pair<VertexType, ShardType>, std::tuple<VertexType, ShardType>>::iterator it = activatedNodes.find(vKey);
+        if (it != activatedNodes.end())
+            activatedNodes.erase (it);
 
-            std::map<std::pair<VertexType, ShardType>, std::tuple<VertexType, ShardType>>::iterator it = activatedNodes.find(vKey);
-            if (it != activatedNodes.end())
-                activatedNodes.erase (it);
+        auto uSize = uIds.sizes()[0];
 
-            auto uSize = uIds.sizes()[0];
+        #pragma omp parallel for default(none) schedule(static) num_threads(1) shared(uSize, uVals, uIds, uShardIds, uDegrees) 
 
-            // #pragma omp parallel default(none) shared(uSize, uVals, uIds, uShardIds, uDegrees)
-            // {
-            //    #pragma omp for schedule(static)
+        for(int64_t j = 0; j < uSize; j++){
+            auto val = uVals[j].item<float>();
+            auto uId = uIds[j].item<VertexType>();
+            auto uShardId = uShardIds[j].item<ShardType>();
+            auto uDegree = uDegrees[j].item<float>();
 
-                for(int j = 0; j < uSize; j++){
-                    auto val = uVals[j].item<float>();
-                    auto uId = uIds[j].item<VertexType>();
-                    auto uShardId = uShardIds[j].item<ShardType>();
-                    auto uDegree = uDegrees[j].item<float>();
+            auto uKey = std::make_pair(uId, uShardId);
 
-                    auto uKey = std::make_pair(uId, uShardId);
+            std::map<std::pair<VertexType,ShardType>, float>::iterator it_r = r.find(uKey);
+            if(it_r == r.end())
+                r[uKey] = 0.0;
+                
+            r[uKey] += val;
 
-                    if(j == 0)
-                        r[uKey] = 0;
-
-                    r[uKey] += val;
-
-                    if(r[uKey] >= epsilon * uDegree){
-                        auto it = activatedNodes.find(uKey);
-                        if(it == activatedNodes.end()){
-                            activatedNodes[uKey] = std::make_tuple(uId, uShardId);
-                            // nextNodeIds.push_back(uId);
-                            // nextShardIds.push_back(uShardId);
-                        }
-                    }
+            if(r[uKey] >= epsilon * uDegree){
+                auto it = activatedNodes.find(uKey);
+                if(it == activatedNodes.end()){
+                    activatedNodes[uKey] = std::make_tuple(uId, uShardId);
                 }
+            }
         }
-        // }
-    }
+    } 
 }

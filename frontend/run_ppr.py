@@ -27,7 +27,7 @@ parser.add_argument('--log', action='store_true', help='whether to log breakdown
 
 def run(rank, args):
     os.environ['MASTER_ADDR'] = 'localhost'
-    os.environ['MASTER_PORT'] = '29500'
+    os.environ['MASTER_PORT'] = '29502'
     options = rpc.TensorPipeRpcBackendOptions(num_worker_threads=4)
 
     rpc.init_rpc(args.worker_name.format(rank), rank=rank, world_size=args.num_machine, rpc_backend_options=options)
