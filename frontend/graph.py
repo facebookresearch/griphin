@@ -73,7 +73,6 @@ class PPR:
     def __init__(self, target_id, shard_id, alpha, epsilon):
         self.ppr = graph_engine.PPR(target_id, shard_id, alpha, epsilon)
 
-
     def pop_activated_nodes(self) -> Tuple[Tensor, Tensor]:
         """
         after this operation, activated nodes is reset 
@@ -99,6 +98,7 @@ class PPR:
             -self.ppr.get_p() is the current p values of PPR class
         """
         return self.ppr.get_p()
+
 
 class SSPPR:
     """

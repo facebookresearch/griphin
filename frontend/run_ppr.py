@@ -7,9 +7,9 @@ import torch.multiprocessing as mp
 import torch.distributed.rpc as rpc
 from torch.distributed.rpc import remote
 
-from ppr import forward_push_single, forward_push_batch, cpp_push
+from ppr import cpp_push_single, cpp_push_batch, python_push_single, python_push_batch
 from utils import get_data_path
-from graph import GraphShard, PPR
+from graph import GraphShard
 
 RUNS = 10
 WARMUP = 3
@@ -19,7 +19,7 @@ parser.add_argument('--num_machine', type=int, default=4, help='number of machin
 parser.add_argument('--num_roots', type=int, default=10, help='number of source nodes in each machine')
 parser.add_argument('--alpha', type=float, default=0.462, help='teleport probability')
 parser.add_argument('--epsilon', type=float, default=1e-6, help='maximum residual')
-parser.add_argument('--version', type=str, default='cpp_ppr', help='version of PPR implementation')
+parser.add_argument('--version', type=str, default='cpp_single', help='version of PPR implementation')
 parser.add_argument('--worker_name', type=str, default='worker{}', help='name of workers, formatted by rank')
 parser.add_argument('--file_path', type=str, default='', help='path to dataset')
 parser.add_argument('--log', action='store_true', help='whether to log breakdown runtime')
@@ -39,9 +39,10 @@ def run(rank, args):
             rrefs.append(remote(info, GraphShard, args=(args.file_path, machine_rank)))
 
         ppr_func_dict = {
-            'single': forward_push_single,
-            'batch': forward_push_batch,
-            'cpp_ppr': cpp_push,
+            'cpp_single': cpp_push_single,
+            'cpp_batch': cpp_push_batch,
+            'python_single': python_push_single,
+            'python_batch': python_push_batch,
         }
 
         tik_ = time.perf_counter()
@@ -81,7 +82,7 @@ if __name__ == '__main__':
         # args.file_path = os.path.join(get_data_path(), 'ogbn_products_{}partitions'.format(args.num_machine))
         args.file_path = os.path.join(get_data_path(), 'hz-ogbn-product-p{}'.format(args.num_machine))
 
-    print('Spawn Multi-Process to simulate Multi-Machine scenario')
+    print(f'Spawn Multi-Process to simulate {args.num_machine}-Machine scenario')
     start = time.time()
     mp.spawn(run, nprocs=args.num_machine, args=(args,), join=True)
     end = time.time()

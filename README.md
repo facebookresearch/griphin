@@ -17,7 +17,7 @@
   ```
 - Distributed PPR
   ```
-  python frontend/run_ppr.py
+  python frontend/run_ppr.py --num_root 10 --version cpp_ppr --num_machine 4
   ```
 
 ### PYG Baseline
