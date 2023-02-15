@@ -1,4 +1,5 @@
 #include "PPR.h"
+#include <omp.h>
 
 PPR::PPR(VertexType targetId_, ShardType shardId_, float alpha_, float epsilon_){
     targetId = targetId_;
@@ -8,8 +9,6 @@ PPR::PPR(VertexType targetId_, ShardType shardId_, float alpha_, float epsilon_)
 
     r[std::make_pair(targetId, shardId)] = 1.;
     activatedNodes[std::make_pair(targetId, shardId)] = std::make_tuple(targetId, shardId);
-    // nextNodeIds.push_back(targetId);
-    // nextShardIds.push_back(shardId);
 }
 
 VertexType PPR::getTargetId(){
@@ -97,13 +96,9 @@ std::tuple<torch::Tensor, torch::Tensor> PPR::popActivatedNodes(){
     }
 
     activatedNodes.clear();
-    //nextNodeIds.clear();
-    //nextShardIds.clear();
 
     torch::Tensor torchNodeIds = torch::from_blob(nodeIds->data(), {len}, torch::kInt32);
     torch::Tensor torchShardIds = torch::from_blob(shardIds->data(), {len}, torch::kInt8);
-
-    // printf("in c++: %d %d \n", (*nodeIds)[0], (*shardIds)[0]);
 
     return std::make_tuple(torchNodeIds, torchShardIds);
 }
@@ -112,6 +107,7 @@ std::tuple<torch::Tensor, torch::Tensor> PPR::popActivatedNodes(){
 void PPR::push(std::vector<std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor>> neighborInfos_, torch::Tensor v_ids_, torch::Tensor v_shard_ids_){
     VertexType size = neighborInfos_.size();
 
+    // #pragma omp parallel for default(none) schedule(static) num_threads(2) shared(size, neighborInfos_, v_ids_, v_shard_ids_, activatedNodes)
     for(int i = 0; i < size; i++){
         torch::Tensor uIds = std::get<0>(neighborInfos_[i]);
         torch::Tensor uShardIds = std::get<1>(neighborInfos_[i]);
@@ -124,11 +120,6 @@ void PPR::push(std::vector<std::tuple<torch::Tensor, torch::Tensor, torch::Tenso
         auto vKey = std::make_pair(vId, vShardId);
         p[vKey] += alpha * r[vKey];
 
-        // float uWeightsSum = 0;
-        // for(int j = 0; j < uWeights.numel(); j++){
-        //     uWeightsSum += uWeights[j].item<float>();
-        // }
-
         torch::Tensor uVals = (1 - alpha) * r[vKey] * uWeights / uWeights.sum();
         r[vKey] = 0.;
 
@@ -138,7 +129,9 @@ void PPR::push(std::vector<std::tuple<torch::Tensor, torch::Tensor, torch::Tenso
 
         auto uSize = uIds.sizes()[0];
 
-        for(int j = 0; j < uSize; j++){
+        #pragma omp parallel for default(none) schedule(static) num_threads(1) shared(uSize, uVals, uIds, uShardIds, uDegrees) 
+
+        for(int64_t j = 0; j < uSize; j++){
             auto val = uVals[j].item<float>();
             auto uId = uIds[j].item<VertexType>();
             auto uShardId = uShardIds[j].item<ShardType>();
@@ -146,20 +139,18 @@ void PPR::push(std::vector<std::tuple<torch::Tensor, torch::Tensor, torch::Tenso
 
             auto uKey = std::make_pair(uId, uShardId);
 
-            if(j == 0)
-                r[uKey] = 0;
-
+            std::map<std::pair<VertexType,ShardType>, float>::iterator it_r = r.find(uKey);
+            if(it_r == r.end())
+                r[uKey] = 0.0;
+                
             r[uKey] += val;
 
             if(r[uKey] >= epsilon * uDegree){
                 auto it = activatedNodes.find(uKey);
                 if(it == activatedNodes.end()){
                     activatedNodes[uKey] = std::make_tuple(uId, uShardId);
-                    // nextNodeIds.push_back(uId);
-                    // nextShardIds.push_back(uShardId);
                 }
             }
         }
-
-    }
+    } 
 }
