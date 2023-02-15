@@ -8,7 +8,7 @@ from tqdm import tqdm
 parser = argparse.ArgumentParser()
 parser.add_argument('--data', type=str, default='ogbn-products', help='which dataset to use')
 parser.add_argument('--num_partition', type=int, default=4, help='how many partitions')
-parser.add_argument('--path', type=str, default='data/hz-ogbn-product-p4', help='output_path')
+parser.add_argument('--path', type=str, default='data/hz-ogbn-product-p4-pt', help='output_path')
 args = parser.parse_args()
 
 if not os.path.isdir(args.path):
@@ -29,9 +29,10 @@ parts = dgl.metis_partition(g, k=args.num_partition, extra_cached_hops=1, reshuf
 
 
 def to_file(path, fn, d):
-    with open('{}/{}'.format(path, fn), 'w') as f:
-        for i in tqdm(d.tolist()):
-            f.write(str(i) + '\n')
+    # with open('{}/{}'.format(path, fn), 'w') as f:
+    #     for i in tqdm(d.tolist()):
+    #         f.write(str(i) + '\n')
+    torch.save(d, '{}/{}'.format(path, fn))
 
 
 # get partitions
@@ -49,7 +50,7 @@ for i in range(len(parts)):
     globalid_to_shardid[part_core_global_id] = i
 
     partition_book.append(part_core_global_id.shape[0] + partition_book[i])
-to_file(args.path, 'partition_book.txt', torch.tensor(partition_book))
+to_file(args.path, 'partition_book.pt', torch.tensor(partition_book))
 
 for i in range(len(parts)):
     part = parts[i]
@@ -61,21 +62,21 @@ for i in range(len(parts)):
     csr = part.adj_sparse('csr')
 
     csr_indptr = csr[0][:num_core_nodes + 1]
-    to_file(args.path, 'csr_indptr{}.txt'.format(i), csr_indptr)
+    to_file(args.path, 'p{}_indptr.pt'.format(i), csr_indptr)
 
     # convert to graph engine format
     csr_indices_localid = csr[1][:csr_indptr[-1]]
     csr_indices_globalid = part.ndata['orig_id'][csr_indices_localid]
     csr_indices_engine_localid = globalid_to_localid[csr_indices_globalid]
     csr_indices_engine_shardid = globalid_to_shardid[csr_indices_globalid]
-    to_file(args.path, 'csr_indices{}.txt'.format(i), csr_indices_engine_localid)
-    to_file(args.path, 'csr_shards{}.txt'.format(i), csr_indices_engine_shardid)
+    to_file(args.path, 'p{}_indices_node_id.pt'.format(i), csr_indices_engine_localid)
+    to_file(args.path, 'p{}_indices_shard_id.pt'.format(i), csr_indices_engine_shardid)
 
     # get edge weights 
     csr_indices_weights = g.edata['w'][part.edata['orig_id']][csr[2][:csr_indptr[-1]]]
     csr_indices_weighted_degree = g.ndata['weighted_degree'][csr_indices_globalid]
-    to_file(args.path, 'csr_edge_weights_p{}.txt'.format(i), csr_indices_weights)
-    to_file(args.path, 'csr_weighted_degrees_p{}.txt'.format(i), csr_indices_weighted_degree)
+    to_file(args.path, 'p{}_indices_edge_weight.pt'.format(i), csr_indices_weights)
+    to_file(args.path, 'p{}_indices_weighted_degree.pt'.format(i), csr_indices_weighted_degree)
 
 # change group owner of written files
-os.system('chown -R :meta_research {}', args.path)
+os.system('chown -R :meta_research {}',format(args.path))
