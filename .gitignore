@@ -16,4 +16,6 @@ data
 /notebooks/.ipynb_checkpoints/
 dataset*
 .vscode/settings.json
-build
+build*
+*log
+*.out
