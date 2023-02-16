@@ -129,7 +129,7 @@ void PPR::push(std::vector<std::tuple<torch::Tensor, torch::Tensor, torch::Tenso
 
         auto uSize = uIds.sizes()[0];
 
-        #pragma omp parallel for default(none) schedule(static) num_threads(1) shared(uSize, uVals, uIds, uShardIds, uDegrees) 
+        // #pragma omp parallel for default(none) schedule(static) num_threads(1) shared(uSize, uVals, uIds, uShardIds, uDegrees) 
 
         for(int64_t j = 0; j < uSize; j++){
             auto val = uVals[j].item<float>();

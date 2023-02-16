@@ -17,6 +17,8 @@ def cpp_push_single(rrefs, num_source, alpha, epsilon, log=False):
 
     source_ids = torch.randperm(local_shard.num_core_nodes)[:num_source]
     results = []
+    nids = []
+    sids = []
     for epoch, target_id in enumerate(source_ids):
         ppr_model = PPR(target_id, rank, alpha, epsilon)
 
@@ -51,8 +53,9 @@ def cpp_push_single(rrefs, num_source, alpha, epsilon, log=False):
                 ppr_model.push(neighbor_infos, v_id_, torch.tensor([v_shard_id]))
                 time_push += time.time() - tik
 
-        results.append(ppr_model.get_p()[2])
-
+        res = ppr_model.get_p()
+        results.append(res[2])
+    
     if rank == 0:
         print(f'Time pop: {time_pop:.3f}s, '
               f'Time fetch local: {time_fetch_neighbor_local:.3f}s, '
@@ -122,7 +125,8 @@ def cpp_push_batch(rrefs, num_source, alpha, epsilon, log=False):
                 ppr_model.push(remote_infos, torch.cat(remote_v_ids), torch.cat(remote_shard_ids))
             time_push += time.time() - tik
 
-        results.append(ppr_model.get_p()[2])
+        res = ppr_model.get_p()
+        results.append(res[2])
 
     if rank == 0:
         print(f'Time fetch local: {time_fetch_neighbor_local:.3f}s, '
@@ -245,7 +249,7 @@ def python_push_batch(rrefs, num_source, alpha, epsilon, log=False):
             time_push += time.time() - tik
 
         results.append(ppr_model.p)
-
+        
     if rank == 0:
         print(f'Time fetch local: {time_fetch_neighbor_local:.3f}s, '
               f'Time fetch remote: {time_fetch_neighbor_remote:.3f}s, '
