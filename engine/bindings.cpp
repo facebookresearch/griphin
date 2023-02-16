@@ -41,7 +41,8 @@ PYBIND11_MODULE(graph_engine, m) {
     .def("sample_single_neighbor2", &Graph<VertexProp, EdgeProp>::sampleSingleNeighbor2)
     .def("partition_book", &Graph<VertexProp, EdgeProp>::getPartitionBook)
     .def("get_neighbor_lists", &Graph<VertexProp, EdgeProp>::getNeighborLists)
-    .def("get_neighbor_infos", &Graph<VertexProp, EdgeProp>::getNeighborInfos);
+    .def("get_neighbor_infos", &Graph<VertexProp, EdgeProp>::getNeighborInfos)
+    .def("get_neighbor_infos_with_time", &Graph<VertexProp, EdgeProp>::getNeighborInfosTime);
 
     py::class_<PPR>(m, "PPR")
     .def(py::init<VertexType, ShardType, float, float>())

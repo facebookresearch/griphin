@@ -62,74 +62,6 @@ def cpp_push_single(rrefs, num_source, alpha, epsilon, log=False):
     return results
 
 
-def cpp_push_batch(rrefs, num_source, alpha, epsilon, log=False):
-    rank = rpc.get_worker_info().id
-    local_shard: GraphShard = rrefs[rank].to_here()
-    num_machines = len(rrefs)
-
-    time_fetch_neighbor_local = 0
-    time_fetch_neighbor_remote = 0
-    time_push = 0
-
-    results = []
-    source_ids = torch.randperm(local_shard.num_core_nodes)[:num_source]
-    for epoch, target_id in enumerate(source_ids):
-        ppr_model = PPR(target_id, rank, alpha, epsilon)
-
-        iteration = 0
-        if log and rank == 0:
-            print('\nSource Node:', epoch)
-
-        while True:
-            v_ids, v_shard_ids = ppr_model.pop_activated_nodes()
-
-            iteration += 1
-            if log and rank == 0:
-                print('iter:', iteration, ', activated nodes:', len(v_ids))
-
-            if len(v_ids) == 0:
-                break
-
-            v_ids_dict, v_shard_ids_dict = {}, {}
-            for j in range(num_machines):
-                mask = v_shard_ids == j
-                v_ids_dict[j], v_shard_ids_dict[j] = v_ids[mask], v_shard_ids[mask]
-
-            futs = {}
-            for j, j_v_ids in v_ids_dict.items():
-                if rank == j or len(j_v_ids) == 0:
-                    continue
-                futs[j] = rrefs[j].rpc_async().batch_fetch_neighbor_infos(j_v_ids)
-
-            tik = time.time()
-            local_neighbor_infos = local_shard.batch_fetch_neighbor_infos(v_ids_dict[rank])
-            time_fetch_neighbor_local += time.time() - tik
-
-            tik = time.time()
-            remote_infos, remote_v_ids, remote_shard_ids = [], [], []
-            for j, fut in futs.items():
-                infos = fut.wait()
-                remote_infos += infos
-                remote_v_ids.append(v_ids_dict[j])
-                remote_shard_ids.append(v_shard_ids_dict[j])
-            time_fetch_neighbor_remote += time.time() - tik
-
-            tik = time.time()
-            # push to neighborhood from local shard
-            ppr_model.push(local_neighbor_infos, v_ids_dict[rank], v_shard_ids_dict[rank])
-            # push to neighborhood from remote shard
-            if len(remote_infos) > 0:
-                ppr_model.push(remote_infos, torch.cat(remote_v_ids), torch.cat(remote_shard_ids))
-            time_push += time.time() - tik
-
-        results.append(ppr_model.get_p()[2])
-
-    if rank == 0:
-        print(f'Time fetch local: {time_fetch_neighbor_local:.3f}s, '
-              f'Time fetch remote: {time_fetch_neighbor_remote:.3f}s, '
-              f'Time push: {time_push:.3f}s')
-
-    return results
 
 
 def python_push_single(rrefs, num_source, alpha, epsilon, log=False):
@@ -194,7 +126,8 @@ def python_push_batch(rrefs, num_source, alpha, epsilon, log=False):
     time_push = 0
 
     results = []
-    source_ids = torch.randperm(local_shard.num_core_nodes)[:num_source]
+    # source_ids = torch.randperm(local_shard.num_core_nodes)[:num_source]
+    source_ids = torch.zeros(num_source, dtype=torch.int64)
     for epoch, target_id in enumerate(source_ids):
         ppr_model = SSPPR(target_id, rank, alpha, epsilon)
 
@@ -217,17 +150,22 @@ def python_push_batch(rrefs, num_source, alpha, epsilon, log=False):
                 mask = v_shard_ids == j
                 v_ids_dict[j], v_shard_ids_dict[j] = v_ids[mask], v_shard_ids[mask]
 
-            futs = {}
-            for j, j_v_ids in v_ids_dict.items():
-                if rank == j or len(j_v_ids) == 0:
-                    continue
-                futs[j] = rrefs[j].rpc_async().batch_fetch_neighbor_infos(j_v_ids)
-
             tik = time.time()
             local_neighbor_infos = local_shard.batch_fetch_neighbor_infos(v_ids_dict[rank])
             time_fetch_neighbor_local += time.time() - tik
 
+
             tik = time.time()
+            fetched_num = str()
+            futs = {}
+            for j, j_v_ids in v_ids_dict.items():
+                if rank == j or len(j_v_ids) == 0:
+                    continue
+                if rank == 0:
+                    futs[j] = rrefs[j].rpc_async().batch_fetch_neighbor_infos(j_v_ids, print_time=True)
+                else:
+                    futs[j] = rrefs[j].rpc_async().batch_fetch_neighbor_infos(j_v_ids)
+                fetched_num += str(len(j_v_ids)) + '/'
             remote_infos, remote_v_ids, remote_shard_ids = [], [], []
             for j, fut in futs.items():
                 infos = fut.wait()
@@ -235,6 +173,8 @@ def python_push_batch(rrefs, num_source, alpha, epsilon, log=False):
                 remote_v_ids.append(v_ids_dict[j])
                 remote_shard_ids.append(v_shard_ids_dict[j])
             time_fetch_neighbor_remote += time.time() - tik
+            if rank == 0:
+                print('remote fetched {} neighbors in {:.2f}ms.'.format(fetched_num, (time.time() - tik) * 1000))
 
             tik = time.time()
             # push to neighborhood from local shard
@@ -245,6 +185,83 @@ def python_push_batch(rrefs, num_source, alpha, epsilon, log=False):
             time_push += time.time() - tik
 
         results.append(ppr_model.p)
+
+    if rank == 0:
+        print(f'Time fetch local: {time_fetch_neighbor_local:.3f}s, '
+              f'Time fetch remote: {time_fetch_neighbor_remote:.3f}s, '
+              f'Time push: {time_push:.3f}s')
+
+    return results
+
+def cpp_push_batch(rrefs, num_source, alpha, epsilon, log=False):
+    rank = rpc.get_worker_info().id
+    local_shard: GraphShard = rrefs[rank].to_here()
+    num_machines = len(rrefs)
+
+    time_fetch_neighbor_local = 0
+    time_fetch_neighbor_remote = 0
+    time_push = 0
+
+    results = []
+    # source_ids = torch.randperm(local_shard.num_core_nodes)[:num_source]
+    source_ids = torch.zeros(num_source, dtype=torch.int64)
+    for epoch, target_id in enumerate(source_ids):
+        ppr_model = PPR(target_id, rank, alpha, epsilon)
+
+        iteration = 0
+        if log and rank == 0:
+            print('\nSource Node:', epoch)
+
+        while True:
+            v_ids, v_shard_ids = ppr_model.pop_activated_nodes()
+
+            iteration += 1
+            if log and rank == 0:
+                print('iter:', iteration, ', activated nodes:', len(v_ids))
+
+            if len(v_ids) == 0:
+                break
+
+            v_ids_dict, v_shard_ids_dict = {}, {}
+            for j in range(num_machines):
+                mask = v_shard_ids == j
+                v_ids_dict[j], v_shard_ids_dict[j] = v_ids[mask], v_shard_ids[mask]
+
+            tik = time.time()
+            local_neighbor_infos = local_shard.batch_fetch_neighbor_infos(v_ids_dict[rank])
+            time_fetch_neighbor_local += time.time() - tik
+
+
+            tik = time.time()
+            fetched_num = str()
+            futs = {}
+            for j, j_v_ids in v_ids_dict.items():
+                if rank == j or len(j_v_ids) == 0:
+                    continue
+                if rank == 0:
+                    futs[j] = rrefs[j + 4].rpc_async().batch_fetch_neighbor_infos(j_v_ids, print_time=True)
+                else:
+                    futs[j] = rrefs[j + 4].rpc_async().batch_fetch_neighbor_infos(j_v_ids)
+                fetched_num += str(len(j_v_ids)) + '/'
+            remote_infos, remote_v_ids, remote_shard_ids = [], [], []
+            for j, fut in futs.items():
+                infos = fut.wait()
+                remote_infos += infos
+                remote_v_ids.append(v_ids_dict[j])
+                remote_shard_ids.append(v_shard_ids_dict[j])
+            time_fetch_neighbor_remote += time.time() - tik
+            if rank == 0:
+                print('remote fetched {} neighbors in {:.2f}ms.'.format(fetched_num, (time.time() - tik) * 1000))
+
+            tik = time.time()
+            # push to neighborhood from local shard
+            ppr_model.push(local_neighbor_infos, v_ids_dict[rank], v_shard_ids_dict[rank])
+            # push to neighborhood from remote shard
+            if len(remote_infos) > 0:
+                ppr_model.push(remote_infos, torch.cat(remote_v_ids), torch.cat(remote_shard_ids))
+            time_push += time.time() - tik
+
+        results.append(ppr_model.get_p())
 
     if rank == 0:
         print(f'Time fetch local: {time_fetch_neighbor_local:.3f}s, '

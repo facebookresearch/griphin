@@ -54,12 +54,16 @@ class GraphShard:
     def batch_fetch_neighbors(self, src_nodes: Tensor) -> List[Tensor]:
         return self.g.get_neighbor_lists(src_nodes)
 
-    def batch_fetch_neighbor_infos(self, src_nodes: Tensor) -> List[Tuple[Tensor, Tensor, Tensor, Tensor]]:
+    def batch_fetch_neighbor_infos(self, src_nodes: Tensor, print_time=False) -> List[Tuple[Tensor, Tensor, Tensor, Tensor]]:
         """
         :param src_nodes:
         :return: List of (VertexIDs, ShardIDs, EdgeWeights, Degrees)
         """
-        return self.g.get_neighbor_infos(src_nodes)
+        if print_time:
+            return self.g.get_neighbor_infos_with_time(src_nodes)
+        else:
+            return self.g.get_neighbor_infos(src_nodes)
+
 
 
 def key_str(node_id, shard_id):

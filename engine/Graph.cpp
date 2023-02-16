@@ -3,6 +3,7 @@
 #include <ctime>
 #include <cstdio>
 #include <omp.h>
+#include <chrono>
 #include "Graph.h"
 #include "utils.h"
 
@@ -279,5 +280,31 @@ std::vector<std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tenso
                                  torch::from_blob(prop.getWeightedDegreesPtr(), {size}, torch::kFloat32));
     }
 
+    return res;
+}
+
+template<class VertexProp, class EdgeProp>
+std::vector<std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor>>
+        Graph<VertexProp, EdgeProp>::getNeighborInfosTime(const torch::Tensor &srcVertexIDs_) {
+    auto start = std::chrono::high_resolution_clock::now();
+    int64_t len = srcVertexIDs_.numel();
+    torch::Tensor srcVertexIDs = srcVertexIDs_.contiguous();
+    const VertexType* srcVertexPtr = srcVertexIDs.data_ptr<VertexType>();
+
+    std::vector<std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor>> res(
+            len,{torch::Tensor(), torch::Tensor(), torch::Tensor(), torch::Tensor()});
+
+    auto opts = srcVertexIDs_.options();
+    for (auto i=0; i<len; i++) {
+        auto prop = findVertex(srcVertexPtr[i]);
+        auto size = prop.getNeighborCount();
+        res[i] = std::make_tuple(torch::from_blob(prop.getIndicesPtr(), {size}, opts),
+                                 torch::from_blob(prop.getShardsPtr(), {size}, torch::kInt8),
+                                 torch::from_blob(prop.getEdgeWeightsPtr(), {size}, torch::kFloat32),
+                                 torch::from_blob(prop.getWeightedDegreesPtr(), {size}, torch::kFloat32));
+    }
+    auto stop = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+    std::cout << "    c++ fetch " << len << " neighbors using " << duration.count() << "us" << std::endl;
     return res;
 }

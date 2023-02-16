@@ -28,15 +28,15 @@ parser.add_argument('--log', action='store_true', help='whether to log breakdown
 def run(rank, args):
     os.environ['MASTER_ADDR'] = 'localhost'
     os.environ['MASTER_PORT'] = '29502'
-    options = rpc.TensorPipeRpcBackendOptions(num_worker_threads=4)
+    options = rpc.TensorPipeRpcBackendOptions(num_worker_threads=16)
 
-    rpc.init_rpc(args.worker_name.format(rank), rank=rank, world_size=args.num_machine, rpc_backend_options=options)
+    rpc.init_rpc(args.worker_name.format(rank), rank=rank, world_size=args.num_machine * 2, rpc_backend_options=options)
 
     if rank == 0:
         rrefs = []
-        for machine_rank in range(args.num_machine):
+        for machine_rank in range(args.num_machine * 2):
             info = rpc.get_worker_info(args.worker_name.format(machine_rank))
-            rrefs.append(remote(info, GraphShard, args=(args.file_path, machine_rank)))
+            rrefs.append(remote(info, GraphShard, args=(args.file_path, machine_rank % args.num_machine)))
 
         ppr_func_dict = {
             'cpp_single': cpp_push_single,
@@ -55,7 +55,7 @@ def run(rank, args):
             # ppr_func_dict[args.version](rrefs, args.num_roots, args.alpha, args.epsilon, args.log)
 
             futs = []
-            for rref in rrefs:
+            for rref in rrefs[:4]:
                 futs.append(
                     rpc.rpc_async(
                         rref.owner(),
@@ -63,9 +63,13 @@ def run(rank, args):
                         args=(rrefs, args.num_roots, args.alpha, args.epsilon, args.log)
                     )
                 )
+                # break
             c = []
             for fut in futs:
                 c.append(fut.wait())
+            
+            if i == WARMUP:
+                print(c[0])
 
             tok = time.perf_counter()
             print(f'Run {i}, Time = {tok - tik:.3f}s\n')
@@ -84,7 +88,7 @@ if __name__ == '__main__':
 
     print(f'Spawn Multi-Process to simulate {args.num_machine}-Machine scenario')
     start = time.time()
-    mp.spawn(run, nprocs=args.num_machine, args=(args,), join=True)
+    mp.spawn(run, nprocs=args.num_machine * 2, args=(args,), join=True)
     end = time.time()
 
     print(f'Total Execution time = {end - start:.3f}s')
