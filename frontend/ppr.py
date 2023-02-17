@@ -1,9 +1,11 @@
+import os
 import time
 import torch.multiprocessing as mp
 
 import torch
 from torch.distributed import rpc
 
+from utils import get_data_path
 from graph import GraphShard, SSPPR, PPR, VERTEX_ID_TYPE
 
 
@@ -63,16 +65,16 @@ def cpp_push_single(rrefs, num_source, alpha, epsilon, log=False):
     return results
 
 
-def local_push(source_ids, rrefs, alpha, epsilon, log=False):
-    num_machines = len(rrefs)
+def local_push(source_ids, rrefs, num_machine, alpha, epsilon, log=False):
     rank = rpc.get_worker_info().id
-    machine_rank = rank % num_machines
+    # machine_rank = rank % num_machines
     # process_rank = int(rank / num_machines) - 1
-    process_rank = rank
+    machine_rank = int(rank / num_machine) - 1
+    process_rank = rank - num_machine * (machine_rank + 1)
+    print(machine_rank, process_rank)
 
-    print(rank)
-    local_shard = rrefs[rank].to_here()  # copy
-    print(6)
+    local_shard = rrefs[rank].to_here()  # only available for local shard
+    # local_shard = GraphShard(path, machine_rank)
 
     time_fetch_neighbor_local = 0
     time_fetch_neighbor_remote = 0
@@ -97,7 +99,7 @@ def local_push(source_ids, rrefs, alpha, epsilon, log=False):
                 break
 
             v_ids_dict, v_shard_ids_dict = {}, {}
-            for j in range(num_machines):
+            for j in range(num_machine):
                 mask = v_shard_ids == j
                 v_ids_dict[j], v_shard_ids_dict[j] = v_ids[mask], v_shard_ids[mask]
 

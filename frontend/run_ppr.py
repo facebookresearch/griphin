@@ -46,11 +46,16 @@ def run(rank, args, world_size):
             'python_batch': python_push_batch,
         }
 
-        # worker 0 ~ num_machine-1: serve GraphShards for remote fetch
+
         rrefs = []
-        for machine_rank in range(0, args.num_machine):
-        # for machine_rank in range(0, world_size):
-            info = rpc.get_worker_info(args.worker_name.format(machine_rank))
+        for rank_ in range(0, world_size):
+            if rank_ < args.num_machine:
+                # worker 0 ~ num_machine-1 served for remote fetch
+                machine_rank = rank_
+            else:
+                # worker num_machine ~ world_size-1 served for local fetch
+                machine_rank = int(rank_ / args.num_machine) - 1
+            info = rpc.get_worker_info(args.worker_name.format(rank_))
             rrefs.append(remote(info, GraphShard, args=(args.file_path, machine_rank)))
 
         tik_ = time.perf_counter()
@@ -61,19 +66,26 @@ def run(rank, args, world_size):
             tik = time.perf_counter()
 
             # ppr_func_dict[args.version](rrefs, args.num_root, args.alpha, args.epsilon, args.log)
-            source_nodes = torch.arange(10, dtype=VERTEX_ID_TYPE)
-            local_push(source_nodes, rrefs, args.alpha, args.epsilon, args.log)
+            source_nodes = torch.arange(args.num_root, dtype=VERTEX_ID_TYPE)
+            # local_push(source_nodes, rrefs, args.num_machine, args.alpha, args.epsilon, args.log)
 
-            # futs = []
-            # for process_rank in range(0, 4):
-            #     futs.append(
-            #         rpc.rpc_async(
-            #             # args.worker_name.format(process_rank),
-            #             rrefs[process_rank].owner(),
-            #             local_push,
-            #             args=(source_nodes, rrefs, args.alpha, args.epsilon, args.log)
-            #         )
-            #     )
+            num_data = int(args.num_root / args.num_process)
+
+            futs = []
+            for machine_rank in range(0, 1):
+                for process_rank in range(0, args.num_process):
+                    emit_rank = args.num_machine * (machine_rank + 1) + process_rank
+                    # data slice
+                    start = process_rank * num_data
+                    end = args.num_root if process_rank == args.num_process - 1 else (process_rank + 1) * num_data
+                    futs.append(
+                        rpc.rpc_async(
+                            args.worker_name.format(emit_rank),
+                            local_push,
+                            args=(source_nodes[start:end], rrefs, args.num_machine, args.alpha, args.epsilon, args.log)
+                        )
+                    )
+            c = [fut.wait() for fut in futs]
 
             # futs = []
             # for rref in rrefs:
@@ -84,8 +96,6 @@ def run(rank, args, world_size):
             #             args=(rrefs, args.num_root, args.alpha, args.epsilon, args.log)
             #         )
             #     )
-
-            # c = [fut.wait() for fut in futs]
 
             tok = time.perf_counter()
             print(f'Run {i}, Time = {tok - tik:.3f}s\n')
@@ -102,10 +112,20 @@ if __name__ == '__main__':
         args.file_path = os.path.join(get_data_path(), 'hz-ogbn-product-p{}'.format(args.num_machine))
 
     # world_size = args.num_machine * (args.num_process + 1)
-    world_size = 8
+    world_size = 7
 
     print(f'Spawn Multi-Process to simulate {args.num_machine}-Machine scenario')
-    start = time.time()
+    t1 = time.time()
+
+    # processes = []
+    # for rank in range(world_size):
+    #     p = mp.Process(target=run, args=(args, world_size))
+    #     p.start()
+    #     processes.append(p)
+    # for p in processes:
+    #     p.join()
+
     mp.spawn(run, nprocs=world_size, args=(args, world_size), join=True)
-    end = time.time()
-    print(f'Total Execution time = {end - start:.3f}s')
+
+    t2 = time.time()
+    print(f'Total Execution time = {t2 - t1:.3f}s')

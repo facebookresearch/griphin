@@ -1,20 +1,20 @@
 import time
-from multiprocessing import Process, Pool
+import torch.multiprocessing as mp
 
 
-def foo(x):
+def foo(rank, x):
     print(x*x)
     time.sleep(1)
     return x * x
 
 
 def start_p():
-    p = Process(target=foo)
+    p = mp.Process(target=foo)
     p.start()
 
 
 def start_batch_p(num_process):
-    with Pool(num_process) as pool:
+    with mp.Pool(num_process) as pool:
         futs = [pool.apply_async(foo, args=(i, )) for i in range(100)]
         # results = [fut.get() for fut in futs]
         # print(results)
@@ -35,8 +35,8 @@ def test_batching():
 
 
 if __name__ == '__main__':
-    print(11 % 3)
-    start_batch_p(5)
+    # start_batch_p(5)
+    mp.spawn(foo, nprocs=10, args=(1,), join=True)
     # test_batching()
 
 

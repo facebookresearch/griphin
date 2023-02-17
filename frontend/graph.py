@@ -1,3 +1,4 @@
+import time
 from collections import OrderedDict, defaultdict
 from typing import Tuple, Dict, List
 
@@ -17,7 +18,11 @@ class GraphShard:
     """
     def __init__(self, path, shard_id):
         self.id = shard_id
+
+        tik = time.time()
         self.g = graph_engine.Graph(shard_id, path)
+        tok = time.time()
+        print(f'Graph {shard_id} loading time: {(tok - tik):.2f}s')
 
     @property
     def num_core_nodes(self):
