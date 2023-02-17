@@ -33,47 +33,60 @@ template <class VertexProp, class EdgeProp>
     numHaloNodes = 0;
     numNodes = 0;
     numEdges = 0;
+    indicesLen = 0;
+    indptrLen = 0;
 
-    int64_t dummy = 0;
+    countLineNumber(csrIndicesFile, &indicesLen);
+    countLineNumber(csrIndPtrsFile, &indptrLen);
 
-    std::string line;
+    csrIndices = new VertexType[indicesLen];
+    csrShardIndices = new ShardType[indicesLen];
+    csrIndptrs = new EdgeType[indptrLen];
+    partitionBook = new VertexType[NUM_PARTITIONS+2];
+    edgeWeights = new float[indicesLen];
+    csrWeightedDegrees = new float[indicesLen];
 
-    readFile(partitionBookFile, &partitionBook, &dummy);
-
-    // read the csr indices file
-    readFile(csrIndicesFile, &csrIndices, &numEdges);
-
-    // read the csr shard indices file
-    readFile(csrShardIndicesFile, &csrShardIndices, &dummy);
-
-    // read the csr indptrs file
-    readFile(csrIndPtrsFile, &csrIndptrs, &dummy);
+    readFile(partitionBookFile, &partitionBook);
 
     numCoreNodes = partitionBook[shardID+1] - partitionBook[shardID];
 
-    readFile(csrWeightedDegreesFile, &csrWeightedDegrees, &dummy, 1);
+    // read the csr indices file
+    readFile(csrIndicesFile, &csrIndices);
 
-    readFile(edgeWeightsFile, &edgeWeights, &dummy, 1);
+    // read the csr shard indices file
+    readFile(csrShardIndicesFile, &csrShardIndices);
+
+    // read the csr indptrs file
+    readFile(csrIndPtrsFile, &csrIndptrs);
+
+    readFile(csrWeightedDegreesFile, &csrWeightedDegrees, 1);
+
+    readFile(edgeWeightsFile, &edgeWeights, 1);
+
+    vertexProps = (VertexProp *) malloc(numCoreNodes * sizeof(VertexProp));
 
     for(VertexType i = 0; i < numCoreNodes; i++){
         auto neighborStartIndex = csrIndptrs[i];
         auto neighborEndIndex = csrIndptrs[i+1];
 
-        vertexProps.push_back(VertexProp(i,
-                                         shardID,
-                                         neighborStartIndex,
-                                         neighborEndIndex,
-                                         0.5,  // TODO: Skip weightedDegree for now
-                                         csrWeightedDegrees.data(),
-                                         edgeWeights.data(),
-                                         csrIndices.data(),
-                                         csrShardIndices.data()));
+        vertexProps[i] = VertexProp(i,
+                                    shardID,
+                                    neighborStartIndex,
+                                    neighborEndIndex,
+                                    0.5,  // TODO: Skip weightedDegree for now
+                                    &csrWeightedDegrees,
+                                    &edgeWeights,
+                                    &csrIndices,
+                                    &csrShardIndices);
     }
 }
 
 template<class VertexProp, class EdgeProp>
 std::vector<VertexType> Graph<VertexProp, EdgeProp>::getPartitionBook() {
-    return partitionBook;
+    std::vector<VertexType> partitionBookVec;
+    for(int i = 0; i < NUM_PARTITIONS + 1; i++)
+        partitionBookVec.push_back(partitionBook[i]);
+    return partitionBookVec;
 }
 
 template <class VertexProp, class EdgeProp> 

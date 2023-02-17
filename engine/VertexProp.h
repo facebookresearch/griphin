@@ -9,7 +9,7 @@
 
 class VertexProp{
     public:
-        VertexProp(VertexType vertexID_, ShardType shardID_, EdgeType neighborStartIndex_, EdgeType neighborEndIndex_, float weightedDegree_,  float* csrWeightedDegrees_,  float* edgeWeights_, VertexType* csrIndicesPtr_, ShardType* csrShardIndicesPtr_);
+        VertexProp(VertexType vertexID_, ShardType shardID_, EdgeType neighborStartIndex_, EdgeType neighborEndIndex_, float weightedDegree_,  float** csrWeightedDegrees_,  float** edgeWeights_, VertexType** csrIndicesPtr_, ShardType** csrShardIndicesPtr_);
         VertexType vertexID;
         ShardType shardID;
 

@@ -18,22 +18,22 @@ template <class VertexProp, class EdgeProp> class Graph{
     private:
         ShardType shardID;
 
-        std::vector<VertexProp> vertexProps;
+        VertexProp* vertexProps;
         //std::vector<EdgeProp> edgeProps;
 
         int64_t numNodes;
         int64_t numCoreNodes;
         int64_t numHaloNodes;
         int64_t numEdges;
+        int64_t indicesLen;
+        int64_t indptrLen;
 
-        std::vector<VertexType> nodeIDs;
-        std::vector<ShardType> haloNodeShards;
-        std::vector<VertexType> csrIndices;
-        std::vector<ShardType> csrShardIndices;
-        std::vector<EdgeType> csrIndptrs;
-        std::vector<VertexType> partitionBook;
-        std::vector<float> edgeWeights;
-        std::vector<float> csrWeightedDegrees;
+        VertexType* csrIndices;
+        ShardType* csrShardIndices;
+        EdgeType* csrIndptrs;
+        VertexType* partitionBook;
+        float* edgeWeights;
+        float* csrWeightedDegrees;
 
     public:
         Graph(ShardType shardID_, const char *path);  // takes shards as the argument

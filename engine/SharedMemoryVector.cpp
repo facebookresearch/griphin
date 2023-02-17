@@ -2,17 +2,17 @@
 
 SharedMemoryVector::SharedMemoryVector(EdgeType neighborStartIndex_,
                                        EdgeType neighborEndIndex_,
-                                       float* csrWeightedDegrees_,
-                                       float* edgeWeights_,
-                                       VertexType* csrIndices_,
-                                       ShardType* csrShardIndices_){
+                                       float** csrWeightedDegrees_,
+                                       float** edgeWeights_,
+                                       VertexType** csrIndices_,
+                                       ShardType** csrShardIndices_){
     neighborStartIndex = neighborStartIndex_;
     neighborEndIndex = neighborEndIndex_;
     size = neighborEndIndex - neighborStartIndex;
-    csrIndices = csrIndices_;
-    csrShardIndices = csrShardIndices_;
-    csrWeightedDegrees = csrWeightedDegrees_;
-    edgeWeights = edgeWeights_;
+    csrWeightedDegrees = *csrWeightedDegrees_;
+    edgeWeights = *edgeWeights_;
+    csrIndices = *csrIndices_;
+    csrShardIndices = *csrShardIndices_;
 }
 
 VertexType* SharedMemoryVector::getIndicesPtr(){
