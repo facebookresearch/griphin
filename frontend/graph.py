@@ -84,13 +84,13 @@ class PPR:
         node_ids, shard_ids = self.ppr.pop_activated_nodes()
         return node_ids, shard_ids
 
-    def push(self, neighbor_infos: List, v_ids: Tensor, v_shard_ids: Tensor):
+    def push(self, neighbor_infos: List, v_ids: Tensor, v_shard_ids: Tensor, num_threads: int):
         """
         :param neighbor_infos list: Neighbor infos is a list of list holding neighbor information of v_ids [indices, shards, edge_weight, weighted_degree]
         :param v_ids Tensor: ids of the nodes to be pushed
         :param v_shard_ids Tensor: corresponding shard ids of v_ids
         """
-        self.ppr.push(neighbor_infos, v_ids, v_shard_ids)
+        self.ppr.push(neighbor_infos, v_ids, v_shard_ids, num_threads)
 
     def get_p(self):
         """

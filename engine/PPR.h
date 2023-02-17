@@ -28,7 +28,7 @@ class PPR{
         // std::tuple<torch::Tensor, torch::Tensor> getActivatedNodes();
 
         std::tuple<torch::Tensor, torch::Tensor> popActivatedNodes();
-        void push(std::vector<std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor>> neighborInfos_, torch::Tensor v_ids_, torch::Tensor v_shard_ids_);
+        void push(std::vector<std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor>> neighborInfos_, torch::Tensor v_ids_, torch::Tensor v_shard_ids_, int num_threads_);
 };
 
 #endif

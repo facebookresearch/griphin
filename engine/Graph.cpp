@@ -40,13 +40,6 @@ template <class VertexProp, class EdgeProp>
 
     readFile(partitionBookFile, &partitionBook, &dummy);
 
-//    readFile(idsListFile, &nodeIDs, &numNodes);
-//
-//    // reads the shard ids of the halo vertices.
-//    readFile(haloShardsListFile, &haloNodeShards, &numHaloNodes);
-
-//    numCoreNodes = numNodes - numHaloNodes;
-
     // read the csr indices file
     readFile(csrIndicesFile, &csrIndices, &numEdges);
 

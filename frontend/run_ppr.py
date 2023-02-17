@@ -19,6 +19,7 @@ parser.add_argument('--num_machine', type=int, default=4, help='number of machin
 parser.add_argument('--num_roots', type=int, default=10, help='number of source nodes in each machine')
 parser.add_argument('--alpha', type=float, default=0.462, help='teleport probability')
 parser.add_argument('--epsilon', type=float, default=1e-6, help='maximum residual')
+parser.add_argument('--num_threads', type=int, default=4, help='num of threads to create in push operation')
 parser.add_argument('--version', type=str, default='cpp_single', help='version of PPR implementation')
 parser.add_argument('--worker_name', type=str, default='worker{}', help='name of workers, formatted by rank')
 parser.add_argument('--file_path', type=str, default='', help='path to dataset')
@@ -27,7 +28,7 @@ parser.add_argument('--log', action='store_true', help='whether to log breakdown
 
 def run(rank, args):
     os.environ['MASTER_ADDR'] = 'localhost'
-    os.environ['MASTER_PORT'] = '29502'
+    os.environ['MASTER_PORT'] = '29500'
     options = rpc.TensorPipeRpcBackendOptions(num_worker_threads=4)
 
     rpc.init_rpc(args.worker_name.format(rank), rank=rank, world_size=args.num_machine, rpc_backend_options=options)
@@ -60,7 +61,7 @@ def run(rank, args):
                     rpc.rpc_async(
                         rref.owner(),
                         ppr_func_dict[args.version],
-                        args=(rrefs, args.num_roots, args.alpha, args.epsilon, args.log)
+                        args=(rrefs, args.num_roots, args.alpha, args.epsilon, args.num_threads, args.log)
                     )
                 )
             c = []

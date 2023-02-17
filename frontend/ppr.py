@@ -6,7 +6,7 @@ from torch.distributed import rpc
 from graph import GraphShard, SSPPR, PPR, VERTEX_ID_TYPE
 
 
-def cpp_push_single(rrefs, num_source, alpha, epsilon, log=False):
+def cpp_push_single(rrefs, num_source, alpha, epsilon, num_threads, log=False):
     rank = rpc.get_worker_info().id
     local_shard: GraphShard = rrefs[rank].to_here()
 
@@ -17,8 +17,6 @@ def cpp_push_single(rrefs, num_source, alpha, epsilon, log=False):
 
     source_ids = torch.randperm(local_shard.num_core_nodes)[:num_source]
     results = []
-    nids = []
-    sids = []
     for epoch, target_id in enumerate(source_ids):
         ppr_model = PPR(target_id, rank, alpha, epsilon)
 
@@ -50,7 +48,7 @@ def cpp_push_single(rrefs, num_source, alpha, epsilon, log=False):
                     time_fetch_neighbor_remote += time.time() - tik
 
                 tik = time.time()
-                ppr_model.push(neighbor_infos, v_id_, torch.tensor([v_shard_id]))
+                ppr_model.push(neighbor_infos, v_id_, torch.tensor([v_shard_id]), num_threads)
                 time_push += time.time() - tik
 
         res = ppr_model.get_p()
@@ -65,7 +63,7 @@ def cpp_push_single(rrefs, num_source, alpha, epsilon, log=False):
     return results
 
 
-def cpp_push_batch(rrefs, num_source, alpha, epsilon, log=False):
+def cpp_push_batch(rrefs, num_source, alpha, epsilon, num_threads, log=False):
     rank = rpc.get_worker_info().id
     local_shard: GraphShard = rrefs[rank].to_here()
     num_machines = len(rrefs)
@@ -119,10 +117,10 @@ def cpp_push_batch(rrefs, num_source, alpha, epsilon, log=False):
 
             tik = time.time()
             # push to neighborhood from local shard
-            ppr_model.push(local_neighbor_infos, v_ids_dict[rank], v_shard_ids_dict[rank])
+            ppr_model.push(local_neighbor_infos, v_ids_dict[rank], v_shard_ids_dict[rank], num_threads)
             # push to neighborhood from remote shard
             if len(remote_infos) > 0:
-                ppr_model.push(remote_infos, torch.cat(remote_v_ids), torch.cat(remote_shard_ids))
+                ppr_model.push(remote_infos, torch.cat(remote_v_ids), torch.cat(remote_shard_ids), num_threads)
             time_push += time.time() - tik
 
         res = ppr_model.get_p()
