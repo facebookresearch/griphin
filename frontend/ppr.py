@@ -1,4 +1,5 @@
 import time
+import torch.multiprocessing as mp
 
 import torch
 from torch.distributed import rpc
@@ -62,29 +63,34 @@ def cpp_push_single(rrefs, num_source, alpha, epsilon, log=False):
     return results
 
 
-def cpp_push_batch(rrefs, num_source, alpha, epsilon, log=False):
-    rank = rpc.get_worker_info().id
-    local_shard: GraphShard = rrefs[rank].to_here()
+def local_push(source_ids, rrefs, alpha, epsilon, log=False):
     num_machines = len(rrefs)
+    rank = rpc.get_worker_info().id
+    machine_rank = rank % num_machines
+    # process_rank = int(rank / num_machines) - 1
+    process_rank = rank
+
+    print(rank)
+    local_shard = rrefs[rank].to_here()  # copy
+    print(6)
 
     time_fetch_neighbor_local = 0
     time_fetch_neighbor_remote = 0
     time_push = 0
 
     results = []
-    source_ids = torch.randperm(local_shard.num_core_nodes)[:num_source]
     for epoch, target_id in enumerate(source_ids):
-        ppr_model = PPR(target_id, rank, alpha, epsilon)
+        ppr_model = PPR(target_id, machine_rank, alpha, epsilon)
 
         iteration = 0
-        if log and rank == 0:
+        if log and machine_rank == process_rank == 0:
             print('\nSource Node:', epoch)
 
         while True:
             v_ids, v_shard_ids = ppr_model.pop_activated_nodes()
 
             iteration += 1
-            if log and rank == 0:
+            if log and machine_rank == process_rank == 0:
                 print('iter:', iteration, ', activated nodes:', len(v_ids))
 
             if len(v_ids) == 0:
@@ -97,12 +103,12 @@ def cpp_push_batch(rrefs, num_source, alpha, epsilon, log=False):
 
             futs = {}
             for j, j_v_ids in v_ids_dict.items():
-                if rank == j or len(j_v_ids) == 0:
+                if j == machine_rank or len(j_v_ids) == 0:
                     continue
                 futs[j] = rrefs[j].rpc_async().batch_fetch_neighbor_infos(j_v_ids)
 
             tik = time.time()
-            local_neighbor_infos = local_shard.batch_fetch_neighbor_infos(v_ids_dict[rank])
+            local_neighbor_infos = local_shard.batch_fetch_neighbor_infos(v_ids_dict[machine_rank])
             time_fetch_neighbor_local += time.time() - tik
 
             tik = time.time()
@@ -116,7 +122,7 @@ def cpp_push_batch(rrefs, num_source, alpha, epsilon, log=False):
 
             tik = time.time()
             # push to neighborhood from local shard
-            ppr_model.push(local_neighbor_infos, v_ids_dict[rank], v_shard_ids_dict[rank])
+            ppr_model.push(local_neighbor_infos, v_ids_dict[machine_rank], v_shard_ids_dict[machine_rank])
             # push to neighborhood from remote shard
             if len(remote_infos) > 0:
                 ppr_model.push(remote_infos, torch.cat(remote_v_ids), torch.cat(remote_shard_ids))
@@ -124,12 +130,44 @@ def cpp_push_batch(rrefs, num_source, alpha, epsilon, log=False):
 
         results.append(ppr_model.get_p()[2])
 
-    if rank == 0:
+    if machine_rank == process_rank == 0:
         print(f'Time fetch local: {time_fetch_neighbor_local:.3f}s, '
               f'Time fetch remote: {time_fetch_neighbor_remote:.3f}s, '
-              f'Time push: {time_push:.3f}s')
+              f'Time push: {time_push:.3f}s', flush=True)
 
     return results
+
+
+def cpp_push_batch(rrefs, num_source, alpha, epsilon, log=False):
+    rank = rpc.get_worker_info().id
+    local_shard: GraphShard = rrefs[rank].to_here()
+    source_nodes = torch.randperm(local_shard.num_core_nodes)[:num_source]
+
+    num_process = 1
+    num_data = int(num_source / num_process)
+
+    with mp.Pool(num_process) as pool:
+        futs = []
+        for i in range(num_process - 1):
+            start, end = i * num_data, (i+1) * num_data
+            futs.append(
+                pool.apply_async(local_push, args=(
+                    source_nodes[start:end],
+                    rrefs, rank, alpha, epsilon, log
+                ))
+            )
+        futs.append(
+            pool.apply_async(local_push, args=(
+                source_nodes[(num_process - 1) * num_data:],
+                rrefs, rank, alpha, epsilon, log
+            ))
+        )
+        print(source_nodes[(num_process - 1) * num_data:])
+        # results = [fut.get() for fut in futs]
+        pool.close()
+        pool.join()
+
+    return []
 
 
 def python_push_single(rrefs, num_source, alpha, epsilon, log=False):
