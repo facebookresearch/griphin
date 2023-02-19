@@ -14,18 +14,34 @@ inline int uniform_randint(int high) {
     return uniform_randint(0, high);
 }
 
-template <class T>
-inline void readFile(const char *fileName, std::vector<T> *vec, int64_t *counter, int mode = 0){ // mode 0 is int, mode 1 is float
+inline void countLineNumber(const char *fileName, int64_t *counter){
     std::string line;
 
     std::ifstream file(fileName);
     if(file.is_open()){
         while(getline(file, line)){
             (*counter) ++;
+        }
+        file.close();
+    }
+    else{
+        std::cout << "Unable to open the file:" << fileName << std::endl;
+    }
+}
+
+template <class T>
+inline void readFile(const char *fileName, T **vec, int mode = 0){ // mode 0 is int, mode 1 is float
+    std::string line;
+    int i = 0;
+
+    std::ifstream file(fileName);
+    if(file.is_open()){
+        while(getline(file, line)){
             if(mode == 0)
-                (*vec).push_back(std::atoi(line.c_str()));
+                (*vec)[i] = std::atoi(line.c_str());
             else
-                (*vec).push_back(std::atof(line.c_str()));
+                (*vec)[i] = std::atof(line.c_str());
+            i ++;
         }
         file.close();
     }

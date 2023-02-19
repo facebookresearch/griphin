@@ -14,7 +14,7 @@ class SharedMemoryVector{
         float* edgeWeights;
         
     public:
-        SharedMemoryVector(EdgeType neighborStartIndex_, EdgeType neighborEndIndex_, float* csrWeightedDegrees_, float* edgeWeights_, VertexType* csrIndices_, ShardType* csrShardIndices_);
+        SharedMemoryVector(EdgeType neighborStartIndex_, EdgeType neighborEndIndex_, float** csrWeightedDegrees_, float** edgeWeights_, VertexType** csrIndices_, ShardType** csrShardIndices_);
         
         VertexType* getIndicesPtr();
         ShardType* getShardsPtr();

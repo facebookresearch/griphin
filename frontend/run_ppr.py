@@ -22,6 +22,7 @@ parser.add_argument('--num_process', type=int, default=1, help='number of proces
 parser.add_argument('--num_root', type=int, default=10, help='number of source nodes in each machine')
 parser.add_argument('--alpha', type=float, default=0.462, help='teleport probability')
 parser.add_argument('--epsilon', type=float, default=1e-6, help='maximum residual')
+parser.add_argument('--num_threads', type=int, default=4, help='num of threads to create in push operation')
 parser.add_argument('--version', type=str, default='cpp_batch', help='version of PPR implementation')
 parser.add_argument('--worker_name', type=str, default='worker{}', help='name of workers, formatted by rank')
 parser.add_argument('--file_path', type=str, default='', help='path to dataset')

@@ -9,7 +9,7 @@ from utils import get_data_path
 from graph import GraphShard, SSPPR, PPR, VERTEX_ID_TYPE
 
 
-def cpp_push_single(rrefs, num_source, alpha, epsilon, log=False):
+def cpp_push_single(rrefs, num_source, alpha, epsilon, num_threads, log=False):
     rank = rpc.get_worker_info().id
     local_shard: GraphShard = rrefs[rank].to_here()
 
@@ -51,10 +51,11 @@ def cpp_push_single(rrefs, num_source, alpha, epsilon, log=False):
                     time_fetch_neighbor_remote += time.time() - tik
 
                 tik = time.time()
-                ppr_model.push(neighbor_infos, v_id_, torch.tensor([v_shard_id]))
+                ppr_model.push(neighbor_infos, v_id_, torch.tensor([v_shard_id]), num_threads)
                 time_push += time.time() - tik
 
-        results.append(ppr_model.get_p()[2])
+        res = ppr_model.get_p()
+        results.append(res[2])
 
     if rank == 0:
         print(f'Time pop: {time_pop:.3f}s, '
@@ -65,7 +66,7 @@ def cpp_push_single(rrefs, num_source, alpha, epsilon, log=False):
     return results
 
 
-def local_push(machine_rank, process_rank, rrefs, num_machine, source_ids, alpha, epsilon, log=False):
+def local_push(machine_rank, process_rank, rrefs, num_machine, source_ids, alpha, epsilon, num_threads, log=False):
     rank = rpc.get_worker_info().id
     # local_shard = rrefs[rank].to_here()  # only available for local shard
     local_shard = rrefs[machine_rank].rpc_sync()
@@ -123,13 +124,14 @@ def local_push(machine_rank, process_rank, rrefs, num_machine, source_ids, alpha
 
             tik = time.time()
             # push to neighborhood from local shard
-            ppr_model.push(local_neighbor_infos, v_ids_dict[machine_rank], v_shard_ids_dict[machine_rank])
+            ppr_model.push(local_neighbor_infos, v_ids_dict[machine_rank], v_shard_ids_dict[machine_rank], num_threads)
             # push to neighborhood from remote shard
             if len(remote_infos) > 0:
-                ppr_model.push(remote_infos, torch.cat(remote_v_ids), torch.cat(remote_shard_ids))
+                ppr_model.push(remote_infos, torch.cat(remote_v_ids), torch.cat(remote_shard_ids), num_threads)
             time_push += time.time() - tik
 
-        results.append(ppr_model.get_p()[2])
+        res = ppr_model.get_p()
+        results.append(res[2])
 
     if machine_rank == process_rank == 0:
         print(f'Time pop: {time_pop:.3f}s, '

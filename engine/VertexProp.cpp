@@ -6,10 +6,10 @@ VertexProp::VertexProp(VertexType vertexID_,
                        EdgeType neighborStartIndex_,
                        EdgeType neighborEndIndex_,
                        float weightedDegree_,
-                       float* csrWeightedDegrees_,
-                       float* edgeWeights_,
-                       VertexType* csrIndicesPtr_,
-                       ShardType* csrShardIndicesPtr_
+                       float** csrWeightedDegrees_,
+                       float** edgeWeights_,
+                       VertexType** csrIndicesPtr_,
+                       ShardType** csrShardIndicesPtr_
                        ) {
     vertexID = vertexID_;
     shardID = shardID_;
