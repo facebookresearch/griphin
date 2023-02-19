@@ -65,17 +65,13 @@ def cpp_push_single(rrefs, num_source, alpha, epsilon, log=False):
     return results
 
 
-def local_push(source_ids, rrefs, num_machine, alpha, epsilon, log=False):
+def local_push(machine_rank, process_rank, rrefs, num_machine, source_ids, alpha, epsilon, log=False):
     rank = rpc.get_worker_info().id
-    # machine_rank = rank % num_machines
-    # process_rank = int(rank / num_machines) - 1
-    machine_rank = int(rank / num_machine) - 1
-    process_rank = rank - num_machine * (machine_rank + 1)
-    print(machine_rank, process_rank)
-
-    local_shard = rrefs[rank].to_here()  # only available for local shard
+    # local_shard = rrefs[rank].to_here()  # only available for local shard
+    local_shard = rrefs[machine_rank].rpc_sync()
     # local_shard = GraphShard(path, machine_rank)
 
+    time_pop = 0
     time_fetch_neighbor_local = 0
     time_fetch_neighbor_remote = 0
     time_push = 0
@@ -89,7 +85,9 @@ def local_push(source_ids, rrefs, num_machine, alpha, epsilon, log=False):
             print('\nSource Node:', epoch)
 
         while True:
+            tik = time.time()
             v_ids, v_shard_ids = ppr_model.pop_activated_nodes()
+            time_pop += time.time() - tik
 
             iteration += 1
             if log and machine_rank == process_rank == 0:
@@ -103,17 +101,18 @@ def local_push(source_ids, rrefs, num_machine, alpha, epsilon, log=False):
                 mask = v_shard_ids == j
                 v_ids_dict[j], v_shard_ids_dict[j] = v_ids[mask], v_shard_ids[mask]
 
+            tik = time.time()
+            # local_neighbor_infos = local_shard.batch_fetch_neighbor_infos(v_ids_dict[machine_rank])
+            local_neighbor_infos = local_shard.get_neighbor_infos(v_ids_dict[machine_rank])
+            time_fetch_neighbor_local += time.time() - tik
+
+            tik = time.time()
             futs = {}
             for j, j_v_ids in v_ids_dict.items():
                 if j == machine_rank or len(j_v_ids) == 0:
                     continue
-                futs[j] = rrefs[j].rpc_async().batch_fetch_neighbor_infos(j_v_ids)
-
-            tik = time.time()
-            local_neighbor_infos = local_shard.batch_fetch_neighbor_infos(v_ids_dict[machine_rank])
-            time_fetch_neighbor_local += time.time() - tik
-
-            tik = time.time()
+                # futs[j] = rrefs[j].rpc_async().batch_fetch_neighbor_infos(j_v_ids)
+                futs[j] = rrefs[j].rpc_async().get_neighbor_infos(j_v_ids)
             remote_infos, remote_v_ids, remote_shard_ids = [], [], []
             for j, fut in futs.items():
                 infos = fut.wait()
@@ -133,11 +132,12 @@ def local_push(source_ids, rrefs, num_machine, alpha, epsilon, log=False):
         results.append(ppr_model.get_p()[2])
 
     if machine_rank == process_rank == 0:
-        print(f'Time fetch local: {time_fetch_neighbor_local:.3f}s, '
+        print(f'Time pop: {time_pop:.3f}s, '
+              f'Time fetch local: {time_fetch_neighbor_local:.3f}s, '
               f'Time fetch remote: {time_fetch_neighbor_remote:.3f}s, '
-              f'Time push: {time_push:.3f}s', flush=True)
+              f'Time push: {time_push:.3f}s')
 
-    return results
+    return results, time_pop, time_fetch_neighbor_local, time_fetch_neighbor_remote, time_push
 
 
 def cpp_push_batch(rrefs, num_source, alpha, epsilon, log=False):

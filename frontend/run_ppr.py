@@ -11,6 +11,8 @@ from ppr import cpp_push_single, cpp_push_batch, python_push_single, python_push
 from utils import get_data_path
 from graph import GraphShard, VERTEX_ID_TYPE
 
+from graph_engine import Graph
+
 RUNS = 10
 WARMUP = 3
 
@@ -28,13 +30,13 @@ parser.add_argument('--log', action='store_true', help='whether to log breakdown
 
 def run(rank, args, world_size):
     os.environ['MASTER_ADDR'] = 'localhost'
-    os.environ['MASTER_PORT'] = '29502'
+    os.environ['MASTER_PORT'] = '29503'
 
     rpc.init_rpc(
         args.worker_name.format(rank),
         rank=rank,
         world_size=world_size,
-        rpc_backend_options=rpc.TensorPipeRpcBackendOptions(num_worker_threads=16)
+        rpc_backend_options=rpc.TensorPipeRpcBackendOptions(num_worker_threads=8)
     )
 
     if rank == 0:
@@ -46,17 +48,26 @@ def run(rank, args, world_size):
             'python_batch': python_push_batch,
         }
 
+        # initialize Graph Tensors in shared memory
 
         rrefs = []
-        for rank_ in range(0, world_size):
+        # for rank_ in range(0, world_size):
+        for rank_ in range(0, args.num_machine):
             if rank_ < args.num_machine:
                 # worker 0 ~ num_machine-1 served for remote fetch
                 machine_rank = rank_
             else:
                 # worker num_machine ~ world_size-1 served for local fetch
-                machine_rank = int(rank_ / args.num_machine) - 1
+                machine_rank = int((rank_ - args.num_machine) / args.num_process)
             info = rpc.get_worker_info(args.worker_name.format(rank_))
-            rrefs.append(remote(info, GraphShard, args=(args.file_path, machine_rank)))
+            # rrefs.append(remote(info, GraphShard, args=(machine_rank, args.file_path)))
+            rrefs.append(remote(info, Graph, args=(machine_rank, args.file_path)))
+
+        time_pop = 0
+        time_local_fetch = 0
+        time_remote_fetch = 0
+        time_push = 0
+
 
         tik_ = time.perf_counter()
         for i in range(RUNS + WARMUP):
@@ -65,27 +76,38 @@ def run(rank, args, world_size):
 
             tik = time.perf_counter()
 
-            # ppr_func_dict[args.version](rrefs, args.num_root, args.alpha, args.epsilon, args.log)
             source_nodes = torch.arange(args.num_root, dtype=VERTEX_ID_TYPE)
-            # local_push(source_nodes, rrefs, args.num_machine, args.alpha, args.epsilon, args.log)
 
             num_data = int(args.num_root / args.num_process)
 
             futs = []
             for machine_rank in range(0, 1):
+            # for machine_rank in range(0, args.num_machine):
                 for process_rank in range(0, args.num_process):
-                    emit_rank = args.num_machine * (machine_rank + 1) + process_rank
+                    emit_rank = args.num_machine + machine_rank * args.num_process + process_rank
+                    # emit_rank = machine_rank
                     # data slice
                     start = process_rank * num_data
                     end = args.num_root if process_rank == args.num_process - 1 else (process_rank + 1) * num_data
+                    print(f'emit_rank {emit_rank}, machine_rank {machine_rank}, start {start}, end {end}')
                     futs.append(
                         rpc.rpc_async(
                             args.worker_name.format(emit_rank),
                             local_push,
-                            args=(source_nodes[start:end], rrefs, args.num_machine, args.alpha, args.epsilon, args.log)
+                            args=(machine_rank, process_rank, rrefs, args.num_machine,
+                                  source_nodes[0:10], args.alpha, args.epsilon, args.log)
                         )
                     )
-            c = [fut.wait() for fut in futs]
+
+            c = []
+            for j, fut in enumerate(futs):
+                res = fut.wait()
+                c.append(res)
+                if j == 0 and i >= WARMUP:
+                    time_pop += res[1]
+                    time_local_fetch += res[2]
+                    time_remote_fetch += res[3]
+                    time_push += res[4]
 
             # futs = []
             # for rref in rrefs:
@@ -100,6 +122,11 @@ def run(rank, args, world_size):
             tok = time.perf_counter()
             print(f'Run {i}, Time = {tok - tik:.3f}s\n')
 
+        print(f'Avg Time pop: {time_pop / RUNS:.3f}s, '
+              f'Avg Time fetch local: {time_local_fetch / RUNS:.3f}s, '
+              f'Avg Time fetch remote: {time_remote_fetch / RUNS:.3f}s, '
+              f'Avg Time push: {time_push / RUNS:.3f}s')
+
         tok_ = time.perf_counter()
         print(f'Avg Execution time = {(tok_ - tik_)/RUNS:.3f}s')
 
@@ -112,9 +139,10 @@ if __name__ == '__main__':
         args.file_path = os.path.join(get_data_path(), 'hz-ogbn-product-p{}'.format(args.num_machine))
 
     # world_size = args.num_machine * (args.num_process + 1)
-    world_size = 7
+    # world_size = args.num_machine
+    world_size = args.num_machine + args.num_process
 
-    print(f'Spawn Multi-Process to simulate {args.num_machine}-Machine scenario')
+    print(f'Spawn {world_size}-Process to simulate {args.num_machine}-Machine scenario')
     t1 = time.time()
 
     # processes = []

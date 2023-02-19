@@ -16,7 +16,7 @@ class GraphShard:
     """
     Front end wrapper for Graph.h
     """
-    def __init__(self, path, shard_id):
+    def __init__(self, shard_id, path):
         self.id = shard_id
 
         tik = time.time()
@@ -59,7 +59,7 @@ class GraphShard:
     def batch_fetch_neighbors(self, src_nodes: Tensor) -> List[Tensor]:
         return self.g.get_neighbor_lists(src_nodes)
 
-    def batch_fetch_neighbor_infos(self, src_nodes: Tensor) -> List[Tuple[Tensor, Tensor, Tensor, Tensor]]:
+    def get_neighbor_infos(self, src_nodes: Tensor) -> List[Tuple[Tensor, Tensor, Tensor, Tensor]]:
         """
         :param src_nodes:
         :return: List of (VertexIDs, ShardIDs, EdgeWeights, Degrees)
@@ -91,9 +91,9 @@ class PPR:
 
     def push(self, neighbor_infos: List, v_ids: Tensor, v_shard_ids: Tensor):
         """
-        :param neighbor_infos list: Neighbor infos is a list of list holding neighbor information of v_ids [indices, shards, edge_weight, weighted_degree]
-        :param v_ids Tensor: ids of the nodes to be pushed
-        :param v_shard_ids Tensor: corresponding shard ids of v_ids
+        :param neighbor_infos: Neighbor infos is a list of list holding neighbor information of v_ids [indices, shards, edge_weight, weighted_degree]
+        :param v_ids: ids of the nodes to be pushed
+        :param v_shard_ids: corresponding shard ids of v_ids
         """
         self.ppr.push(neighbor_infos, v_ids, v_shard_ids)
 

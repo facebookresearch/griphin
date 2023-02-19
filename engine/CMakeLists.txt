@@ -21,7 +21,9 @@ add_executable(engine
         SharedMemoryVector.h
         SharedMemoryVector.cpp
         ppr.h
-        ppr.cpp)
+        ppr.cpp
+        bindings.cpp
+        )
 
 
 set(CMAKE_PREFIX_PATH /Users/synapse/opt/anaconda3/envs/pytorch-graph/lib/python3.9/site-packages/torch/share/cmake)
