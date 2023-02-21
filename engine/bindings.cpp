@@ -11,7 +11,7 @@ namespace py = pybind11;
 
 PYBIND11_MODULE(graph_engine, m) {
     py::class_<Graph<VertexProp, EdgeProp>>(m, "Graph")
-    .def(py::init<ShardType, char*>())
+    .def(py::init<ShardType, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor>())
     .def("num_core_nodes", &Graph<VertexProp, EdgeProp>::getNumOfCoreVertices)
     .def("sample_single_neighbor", &Graph<VertexProp, EdgeProp>::sampleSingleNeighbor)
     .def("sample_single_neighbor2", &Graph<VertexProp, EdgeProp>::sampleSingleNeighbor2)

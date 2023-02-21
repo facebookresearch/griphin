@@ -1,5 +1,9 @@
 import time
+
+import torch
 import torch.multiprocessing as mp
+
+from dgl.utils.shared_mem import create_shared_mem_array, get_shared_mem_array
 
 
 def foo(rank, x):
@@ -8,18 +12,25 @@ def foo(rank, x):
     return x * x
 
 
-def start_p():
-    p = mp.Process(target=foo)
-    p.start()
+def print_shm(rank):
+    # time.sleep(rank)
+    t1 = get_shared_mem_array('t1', (10,), dtype=torch.int32)
+
+    time.sleep(rank)
+    print(rank, t1)
+    t1[:] = torch.randperm(10, dtype=torch.int32)
+    print(rank, t1)
 
 
 def start_batch_p(num_process):
+    t1 = create_shared_mem_array('t1', (10,), dtype=torch.int32)
+    # t1 = torch.zeros(10, dtype=torch.int32).share_memory_()
+    # t1[:] = torch.randperm(10, dtype=torch.int32)
+    print(t1.is_shared(), '\n')
+
     with mp.Pool(num_process) as pool:
-        futs = [pool.apply_async(foo, args=(i, )) for i in range(100)]
-        # results = [fut.get() for fut in futs]
-        # print(results)
-        pool.close()
-        pool.join()
+        futs = [pool.apply_async(print_shm, args=(i, )) for i in range(num_process)]
+        results = [fut.get() for fut in futs]
 
 
 def test_batching():
@@ -35,8 +46,7 @@ def test_batching():
 
 
 if __name__ == '__main__':
-    # start_batch_p(5)
-    mp.spawn(foo, nprocs=10, args=(1,), join=True)
+    start_batch_p(5)
+    # mp.spawn(foo, nprocs=10, args=(1,), join=True)
     # test_batching()
-
 

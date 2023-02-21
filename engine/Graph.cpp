@@ -7,61 +7,25 @@
 #include "utils.h"
 
 template <class VertexProp, class EdgeProp>
-    Graph<VertexProp, EdgeProp>::Graph(const ShardType shardID_, const char *path){
-
-//    char idsListFile[1024]; // what is this? seems not used in later
-//    char haloShardsListFile[1024]; // what is this? seems not used in later
-    char csrIndicesFile[1024]; // csr indices of local id
-    char csrShardIndicesFile[1024]; // csr indices of shard id
-    char csrIndPtrsFile[1024]; // csr indices pointer (core nodes only)
-    char edgeWeightsFile[1024]; // csr indices of edge weights
-    char csrWeightedDegreesFile[1024]; // csr indices of summed edge weights
-    char partitionBookFile[1024]; // start and end global id of each partition
+Graph<VertexProp, EdgeProp>::Graph(ShardType shardID_, torch::Tensor indptrs_, torch::Tensor indices_,
+                                   torch::Tensor shardIndices_, torch::Tensor edgeWeightIndicies_,
+                                   torch::Tensor weightedDegreeIndicies_, torch::Tensor partition_book_) {
+    csrIndptrs = indptrs_.contiguous().data_ptr<EdgeType>();
+    csrIndices = indices_.contiguous().data_ptr<VertexType>();
+    csrShardIndices = shardIndices_.contiguous().data_ptr<ShardType>();
+    edgeWeights = edgeWeightIndicies_.contiguous().data_ptr<WeightType>();
+    csrWeightedDegrees = weightedDegreeIndicies_.contiguous().data_ptr<WeightType>();
+    partitionBook = partition_book_.contiguous().data_ptr<VertexType>();
 
     shardID = shardID_;
+    numPartition = static_cast<ShardType>(partition_book_.numel() - 1);
 
-//    snprintf(idsListFile, 1024, "%s/p%d_ids.txt", path, shardID);
-//    snprintf(haloShardsListFile, 1024, "%s/p%d_halo_shards.txt", path, shardID);
-    snprintf(csrIndicesFile, 1024, "%s/csr_indices%d.txt", path, shardID);
-    snprintf(csrShardIndicesFile, 1024, "%s/csr_shards%d.txt", path, shardID);
-    snprintf(csrIndPtrsFile, 1024, "%s/csr_indptr%d.txt", path, shardID);
-    snprintf(edgeWeightsFile, 1024, "%s/csr_edge_weights_p%d.txt", path, shardID);
-    snprintf(csrWeightedDegreesFile, 1024, "%s/csr_weighted_degrees_p%d.txt", path, shardID);
-    snprintf(partitionBookFile, 1024, "%s/partition_book.txt", path);
-
-    numCoreNodes = 0;
-    numHaloNodes = 0;
-    numNodes = 0;
-    numEdges = 0;
-    indicesLen = 0;
-    indptrLen = 0;
-
-    countLineNumber(csrIndicesFile, &indicesLen);
-    countLineNumber(csrIndPtrsFile, &indptrLen);
-
-    csrIndices = new VertexType[indicesLen];
-    csrShardIndices = new ShardType[indicesLen];
-    csrIndptrs = new EdgeType[indptrLen];
-    partitionBook = new VertexType[NUM_PARTITIONS+2];
-    edgeWeights = new float[indicesLen];
-    csrWeightedDegrees = new float[indicesLen];
-
-    readFile(partitionBookFile, &partitionBook);
-
+    indptrLen = indptrs_.numel();
+    indicesLen = indices_.numel();
+    numEdges = indices_.numel();
     numCoreNodes = partitionBook[shardID+1] - partitionBook[shardID];
-
-    // read the csr indices file
-    readFile(csrIndicesFile, &csrIndices);
-
-    // read the csr shard indices file
-    readFile(csrShardIndicesFile, &csrShardIndices);
-
-    // read the csr indptrs file
-    readFile(csrIndPtrsFile, &csrIndptrs);
-
-    readFile(csrWeightedDegreesFile, &csrWeightedDegrees, 1);
-
-    readFile(edgeWeightsFile, &edgeWeights, 1);
+    numHaloNodes = 0;  // TODO:
+    numNodes = 0;      // TODO:
 
     vertexProps = (VertexProp *) malloc(numCoreNodes * sizeof(VertexProp));
 
@@ -69,23 +33,25 @@ template <class VertexProp, class EdgeProp>
         auto neighborStartIndex = csrIndptrs[i];
         auto neighborEndIndex = csrIndptrs[i+1];
 
-        vertexProps[i] = VertexProp(i,
-                                    shardID,
-                                    neighborStartIndex,
-                                    neighborEndIndex,
-                                    0.5,  // TODO: Skip weightedDegree for now
-                                    &csrWeightedDegrees,
-                                    &edgeWeights,
-                                    &csrIndices,
-                                    &csrShardIndices);
+        vertexProps[i] = VertexProp(
+                i,
+                shardID,
+                neighborStartIndex,
+                neighborEndIndex,
+                0.5,  // TODO: Skip weightedDegree of current node
+                &csrWeightedDegrees,
+                &edgeWeights,
+                &csrIndices,
+                &csrShardIndices
+                );
     }
 }
 
 template<class VertexProp, class EdgeProp>
 std::vector<VertexType> Graph<VertexProp, EdgeProp>::getPartitionBook() {
-    std::vector<VertexType> partitionBookVec;
-    for(int i = 0; i < NUM_PARTITIONS + 1; i++)
-        partitionBookVec.push_back(partitionBook[i]);
+    std::vector<VertexType> partitionBookVec(numPartition + 1, 0);
+    for(int i = 0; i < numPartition + 1; i++)
+        partitionBookVec[i] = partitionBook[i];
     return partitionBookVec;
 }
 
@@ -95,12 +61,13 @@ VertexProp Graph<VertexProp, EdgeProp>::findVertex(VertexType vertexID){
 } 
 
 template <class VertexProp, class EdgeProp>
-Graph<VertexProp, EdgeProp>::~Graph(){
-}
+Graph<VertexProp, EdgeProp>::~Graph() = default;
 
 template <class VertexProp, class EdgeProp>
 int64_t Graph<VertexProp, EdgeProp>::getNumOfVertices(){
-    return numNodes;
+//    return numNodes;
+    std::cout << "Function not yet implemented" << std::endl;
+    abort();
 }
 
 template <class VertexProp, class EdgeProp>
@@ -110,7 +77,9 @@ int64_t Graph<VertexProp, EdgeProp>::getNumOfCoreVertices(){
 
 template <class VertexProp, class EdgeProp>
 int64_t Graph<VertexProp, EdgeProp>::getNumOfHaloVertices(){
-    return numHaloNodes;
+//    return numHaloNodes;
+    std::cout << "Function not yet implemented" << std::endl;
+    abort();
 }
 
 template <class VertexProp, class EdgeProp>
@@ -267,22 +236,27 @@ std::vector<torch::Tensor> Graph<VertexProp, EdgeProp>::getNeighborLists(const t
 
 template<class VertexProp, class EdgeProp>
 std::vector<std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor>>
-        Graph<VertexProp, EdgeProp>::getNeighborInfos(const torch::Tensor &srcVertexIDs_) {
+Graph<VertexProp, EdgeProp>::getNeighborInfos(const torch::Tensor &srcVertexIDs_) {
+//    std::cout<< "indptrLen " << indptrLen << std::endl;
+//    std::cout << csrIndptrs[0] << " " << csrIndptrs[1] << " " << csrIndptrs[2] << std::endl;
+//    std::cout<< "indicesLen " << indicesLen << std::endl;
+
     int64_t len = srcVertexIDs_.numel();
     torch::Tensor srcVertexIDs = srcVertexIDs_.contiguous();
     const VertexType* srcVertexPtr = srcVertexIDs.data_ptr<VertexType>();
 
     std::vector<std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor>> res(
-            len,{torch::Tensor(), torch::Tensor(), torch::Tensor(), torch::Tensor()});
+            len,{torch::Tensor(), torch::Tensor(), torch::Tensor(), torch::Tensor()}
+            );
 
     auto opts = srcVertexIDs_.options();
     for (auto i=0; i<len; i++) {
         auto prop = findVertex(srcVertexPtr[i]);
         auto size = prop.getNeighborCount();
         res[i] = std::make_tuple(torch::from_blob(prop.getIndicesPtr(), {size}, opts),
-                                 torch::from_blob(prop.getShardsPtr(), {size}, torch::kInt8),
-                                 torch::from_blob(prop.getEdgeWeightsPtr(), {size}, torch::kFloat32),
-                                 torch::from_blob(prop.getWeightedDegreesPtr(), {size}, torch::kFloat32));
+                                 torch::from_blob(prop.getShardsPtr(), {size}, tensorShardType),
+                                 torch::from_blob(prop.getEdgeWeightsPtr(), {size}, tensorWeightType),
+                                 torch::from_blob(prop.getWeightedDegreesPtr(), {size}, tensorWeightType));
     }
 
     return res;

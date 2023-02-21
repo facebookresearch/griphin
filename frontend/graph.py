@@ -8,19 +8,115 @@ import os.path as osp
 
 from torch import Tensor
 
+from dgl.utils.shared_mem import create_shared_mem_array, get_shared_mem_array
+
+# global type
+from torch.distributed import rpc
+from torch.distributed.rpc import remote, RRef
+
 VERTEX_ID_TYPE = torch.int32
+EDGE_ID_TYPE = torch.int32
 SHARD_ID_TYPE = torch.int8
+WEIGHT_TYPE = torch.float32
+
+
+class GraphDataManager:
+    # File Names
+    indptr_file = 'p{}_indptr.pt'
+    indices_file = 'p{}_indices_node_id.pt'
+    indices_shard_id_file = 'p{}_indices_shard_id.pt'
+    indices_edge_weight_file = 'p{}_indices_edge_weight.pt'
+    indices_weighted_degree_file = 'p{}_indices_weighted_degree.pt'
+    partition_file = 'partition_book.pt'
+
+    def __init__(self, machine_rank, root_dir, worker_name, num_machines, num_processes):
+        self.machine_rank = machine_rank
+        self.num_machines = num_machines
+        self.num_processes = num_processes
+        self.worker_name = worker_name
+
+        res = self.create_shared_mem_graph_data(machine_rank, root_dir)
+        self.graph_data = res[0]
+        self.indptr_size = res[1]
+        self.indices_size = res[2]
+
+    @property
+    def subp_start_rank(self):
+        # rank of the first sub process
+        return self.num_machines + self.machine_rank * self.num_processes
+
+    def get_graph_rrefs(self):
+        main_rref = self.__create_rref(self.machine_rank)
+
+        if self.machine_rank == -1:
+            print(rpc.get_worker_info())
+            print(self.graph_data[-1])
+            print(main_rref.rpc_sync().partition_book())
+            print(main_rref.rpc_sync().get_neighbor_infos(torch.tensor([1], dtype=VERTEX_ID_TYPE)))
+
+        sub_rrefs = []
+        for rank_ in range(self.subp_start_rank, self.subp_start_rank + self.num_processes):
+            sub_rrefs.append(self.__create_rref(rank_))
+
+        return main_rref, sub_rrefs
+
+    def __create_rref(self, rank):
+        info = rpc.get_worker_info(self.worker_name.format(rank))
+        return remote(info, GraphShard, args=(
+            self.machine_rank, self.num_machines, self.indptr_size, self.indices_size
+        ))
+
+    @staticmethod
+    def create_shared_mem_graph_data(shard_id, root_dir):
+        clazz = GraphDataManager
+
+        def load_data(file_name, dtype, format_required=True):
+            name = file_name.format(shard_id) if format_required else file_name
+            data = torch.load(osp.join(root_dir, name)).to(dtype)
+            # shared_data = data.share_memory_()
+            shared_data = create_shared_mem_array(name, data.size(), dtype=dtype)
+            shared_data[:] = data
+            return shared_data
+
+        graph_data = [
+            load_data(clazz.indptr_file, EDGE_ID_TYPE),
+            load_data(clazz.indices_file, VERTEX_ID_TYPE),
+            load_data(clazz.indices_shard_id_file, SHARD_ID_TYPE),
+            load_data(clazz.indices_edge_weight_file, WEIGHT_TYPE),
+            load_data(clazz.indices_weighted_degree_file, WEIGHT_TYPE),
+            load_data(clazz.partition_file, VERTEX_ID_TYPE, format_required=False),
+        ]
+        return graph_data, graph_data[0].size(), graph_data[1].size()
+
+    @staticmethod
+    def get_shared_mem_graph_data(shard_id, num_machines, indptr_size, indices_size):
+        clazz = GraphDataManager
+
+        def _key(file_name):
+            return file_name.format(shard_id)
+
+        graph_data = [
+            get_shared_mem_array(_key(clazz.indptr_file), indptr_size, EDGE_ID_TYPE),
+            get_shared_mem_array(_key(clazz.indices_file), indices_size, VERTEX_ID_TYPE),
+            get_shared_mem_array(_key(clazz.indices_shard_id_file), indices_size, SHARD_ID_TYPE),
+            get_shared_mem_array(_key(clazz.indices_edge_weight_file), indices_size, WEIGHT_TYPE),
+            get_shared_mem_array(_key(clazz.indices_weighted_degree_file), indices_size, WEIGHT_TYPE),
+            get_shared_mem_array(clazz.partition_file, (num_machines + 1,), VERTEX_ID_TYPE),
+        ]
+
+        return graph_data
 
 
 class GraphShard:
     """
     Front end wrapper for Graph.h
     """
-    def __init__(self, shard_id, path):
+    def __init__(self, shard_id, *args):
         self.id = shard_id
+        self.graph_tensor_arr = GraphDataManager.get_shared_mem_graph_data(shard_id, *args)
 
         tik = time.time()
-        self.g = graph_engine.Graph(shard_id, path)
+        self.g = graph_engine.Graph(shard_id, *self.graph_tensor_arr)
         tok = time.time()
         print(f'Graph {shard_id} loading time: {(tok - tik):.2f}s')
 
@@ -30,6 +126,9 @@ class GraphShard:
 
     @property
     def cluster_ptr(self):
+        return self.g.partition_book()
+
+    def partition_book(self):
         return self.g.partition_book()
 
     def to_global(self, indices, shard_id=None):
@@ -67,10 +166,6 @@ class GraphShard:
         return self.g.get_neighbor_infos(src_nodes)
 
 
-def key_str(node_id, shard_id):
-    return '{}_{}'.format(node_id, shard_id)
-
-
 class PPR:
     """
         Front end wrapper for PPR.h
@@ -94,6 +189,7 @@ class PPR:
         :param neighbor_infos: Neighbor infos is a list of list holding neighbor information of v_ids [indices, shards, edge_weight, weighted_degree]
         :param v_ids: ids of the nodes to be pushed
         :param v_shard_ids: corresponding shard ids of v_ids
+        :param num_threads:
         """
         self.ppr.push(neighbor_infos, v_ids, v_shard_ids, num_threads)
 
@@ -115,9 +211,13 @@ class SSPPR:
 
         self.p = defaultdict(float)
         self.r = defaultdict(float)
-        self.r[key_str(target_id, shard_id)] = 1
+        self.r[self.key_str(target_id, shard_id)] = 1
 
-        self.activated_nodes = {key_str(target_id, shard_id): (target_id, shard_id)}
+        self.activated_nodes = {self.key_str(target_id, shard_id): (target_id, shard_id)}
+
+    @staticmethod
+    def key_str(node_id, shard_id):
+        return '{}_{}'.format(node_id, shard_id)
 
     def pop_activated_nodes(self) -> Tuple[Tensor, Tensor]:
 
@@ -132,14 +232,14 @@ class SSPPR:
         for u_info, v_id, v_shard_id in zip(neighbor_infos, v_ids, v_shard_ids):
             u_ids, u_shard_ids, u_weights, u_degrees = u_info
 
-            v_key = key_str(v_id, v_shard_id)
+            v_key = self.key_str(v_id, v_shard_id)
             self.p[v_key] += self.alpha * self.r[v_key]
             u_vals = (1 - self.alpha) * self.r[v_key] * u_weights / u_weights.sum()
             self.r[v_key] = 0
             self.activated_nodes.pop(v_key, None)
 
             for val, u_id, u_shard_id, u_degree in zip(u_vals, u_ids, u_shard_ids, u_degrees):
-                u_key = key_str(u_id, u_shard_id)
+                u_key = self.key_str(u_id, u_shard_id)
                 # update neighbor node
                 self.r[u_key] += val
                 # check threshold

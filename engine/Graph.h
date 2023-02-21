@@ -14,12 +14,10 @@
 #include "EdgeProp.h"
 #include "VertexProp.h"
 
-template <class VertexProp, class EdgeProp> class Graph{
+template <class VertexProp, class EdgeProp> class Graph {
     private:
         ShardType shardID;
-
-        VertexProp* vertexProps;
-        //std::vector<EdgeProp> edgeProps;
+        ShardType numPartition;
 
         int64_t numNodes;
         int64_t numCoreNodes;
@@ -28,30 +26,38 @@ template <class VertexProp, class EdgeProp> class Graph{
         int64_t indicesLen;
         int64_t indptrLen;
 
+        EdgeType* csrIndptrs;
         VertexType* csrIndices;
         ShardType* csrShardIndices;
-        EdgeType* csrIndptrs;
+        WeightType * edgeWeights;
+        WeightType * csrWeightedDegrees;
         VertexType* partitionBook;
-        float* edgeWeights;
-        float* csrWeightedDegrees;
+
+        VertexProp* vertexProps;
 
     public:
-        Graph(ShardType shardID_, const char *path);  // takes shards as the argument
+        Graph(ShardType shardID_, torch::Tensor indptrs_, torch::Tensor indices_, torch::Tensor shardIndices_,
+              torch::Tensor edgeWeightIndicies_, torch::Tensor weightedDegreeIndicies_, torch::Tensor partition_book_);
         ~Graph();
 
-        std::vector<VertexType> getPartitionBook();
-
         // Query
+        std::vector<VertexType> getPartitionBook();
         int64_t getNumOfVertices();
         int64_t getNumOfCoreVertices();
         int64_t getNumOfHaloVertices();
-        std::vector<torch::Tensor>getNeighborLists(const torch::Tensor &srcVertexIDs_);
-        std::vector<std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor>>getNeighborInfos(const torch::Tensor &srcVertexIDs_);
-        VertexProp findVertex(VertexType vertexID);          // returns local id in the current shard based on given global id
 
-        bool findVertexLocking(VertexType localVertexID);          // i did not understand what are the locks used for but i am assuming this function returns true if the given node is locked
-        VertexProp findVertexProp(VertexType localVertexID);       // returns the vertex properties of given local vertex ID
-        //VertexProp findEdgeProp(VertexType localEdgeID);           // returns the edge properties of the given edge ID
+        VertexProp findVertex(VertexType vertexID);            // returns the vertex properties of the given local vertex ID
+        bool findVertexLocking(VertexType localVertexID);      // returns true if the given node is locked
+        VertexProp findVertexProp(VertexType localVertexID);   // returns the vertex properties of given local vertex ID
+        //EdgeProp findEdgeProp(VertexType localEdgeID);       // returns the edge properties of the given edge ID
+
+        // Neighborhood Fetching
+        std::vector<torch::Tensor>getNeighborLists(const torch::Tensor &srcVertexIDs_);
+        std::vector<std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor>> getNeighborInfos(const torch::Tensor &srcVertexIDs_);
+
+        std::tuple<torch::Tensor, std::map<ShardType, torch::Tensor>> sampleSingleNeighbor(const torch::Tensor &srcVertexIDs_);  // return {localIDs, shardIndexMap}
+        std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> sampleSingleNeighbor2(const torch::Tensor &srcVertexIDs_);
+
 
         // Graph Mutation
         bool addVertex(VertexProp vertex);                                      // adds vertex to the shard
@@ -69,9 +75,6 @@ template <class VertexProp, class EdgeProp> class Graph{
         bool deleteEdge(VertexType localVertexID1, VertexType localVertexID2);
         bool deleteEdge(EdgeType localEdgeID);
 
-        // Sampling
-        std::tuple<torch::Tensor, std::map<ShardType, torch::Tensor>> sampleSingleNeighbor(const torch::Tensor &srcVertexIDs_);  // return {localIDs, shardIndexMap}
-        std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> sampleSingleNeighbor2(const torch::Tensor &srcVertexIDs_);
 };
 
 #endif

@@ -7,7 +7,9 @@ import torch
 import graph_engine
 
 from utils import get_root_path, get_data_path
-from graph import GraphShard, VERTEX_ID_TYPE
+from graph import GraphShard, VERTEX_ID_TYPE, GraphDataManager
+
+import torch.multiprocessing as mp
 
 
 def test1():
@@ -86,9 +88,31 @@ def test7():
     # print(gs.cluster_ptr)
     t2 = time.time()
     print(f'Graph loading time: {(t2-t1):.3f}')
-    print(gs.batch_fetch_neighbor_infos(torch.tensor([1, 2], dtype=VERTEX_ID_TYPE)))
+    print(gs.get_neighbor_infos(torch.tensor([1, 2], dtype=VERTEX_ID_TYPE)))
+
+
+def load_graph(rank, *args):
+    if rank == 0:
+        path = os.path.join(get_data_path(), 'hz-ogbn-product-p{}-pt'.format(4))
+        graph_data, indptr_size, indices_size = GraphDataManager.create_shared_mem_graph_data(0, path)
+        # return
+    else:
+        time.sleep(5)
+
+    g = GraphShard(*args)
+    print(rank, g.partition_book())
+    time.sleep(10)
+
+    if rank == 0:
+        print(g.get_neighbor_infos(torch.tensor([1], dtype=VERTEX_ID_TYPE)))
+
+
+def test8():
+    with mp.Pool(10) as pool:
+        futs = [pool.apply_async(load_graph, args=(i, 0, 4, (609549,), (58554640,))) for i in range(10)]
+        results = [fut.get() for fut in futs]
 
 
 if __name__ == '__main__':
-    test7()
+    test8()
 
