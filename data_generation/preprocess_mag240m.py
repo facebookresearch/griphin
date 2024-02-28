@@ -11,12 +11,12 @@ import torch
 from ogb.lsc import MAG240MDataset
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--ogb_data_path', type=str, default='/data/gangda/ogb')
-parser.add_argument('--dgl_data_path', type=str, default='/data/gangda/dgl')
+parser.add_argument('--input_path', type=str, default='/data/gangda/ogb')
+parser.add_argument('--output_path', type=str, default='/data/gangda/dgl')
 args = parser.parse_args()
 
 print("Building graph")
-dataset = MAG240MDataset(root=args.ogb_data_path)
+dataset = MAG240MDataset(root=args.input_path)
 ei_writes = dataset.edge_index("author", "writes", "paper")
 ei_cites = dataset.edge_index("paper", "paper")
 ei_affiliated = dataset.edge_index("author", "institution")
@@ -70,5 +70,5 @@ del g.ndata[dgl.NID]
 
 g = dgl.to_bidirected(g)
 g.edata['w'] = torch.rand((g.num_edges()))
-dgl.save_graphs(osp.join(args.dgl_data_path, 'mag240M', 'dgl_data_processed'), g)
+dgl.save_graphs(osp.join(args.output_path, 'mag240M', 'dgl_data_processed'), g)
 

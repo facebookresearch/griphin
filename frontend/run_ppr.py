@@ -241,7 +241,7 @@ def run(rank, args, world_size):
 if __name__ == '__main__':
     args = parser.parse_args()
     if len(args.data_path) == 0:
-        args.data_path = os.path.join(get_data_path(), 'ogbn-products-p{}'.format(args.num_machines))
+        args.data_path = os.path.join(get_data_path(), '{}-p{}'.format(args.dataset, args.num_machines))
 
     world_size = args.num_machines * (args.num_processes + 1)
 

@@ -10,16 +10,16 @@ import dgl
 from dgl.data import CoraGraphDataset
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--path', type=str, default='/data/gangda/graph_engine')
-parser.add_argument('--dgl_data_path', type=str, default='/data/gangda/dgl')
+parser.add_argument('--input_path', type=str, default='/data/gangda/dgl')
+parser.add_argument('--output_path', type=str, default='/data/gangda/graph_engine')
 args = parser.parse_args()
 
 dataset = 'cora'
 
-if not osp.isdir(osp.join(args.path, dataset)):
-    os.makedirs(osp.join(args.path, dataset))
+if not osp.isdir(osp.join(args.output_path, dataset)):
+    os.makedirs(osp.join(args.output_path, dataset))
 
-og = CoraGraphDataset(raw_dir=args.dgl_data_path)[0]
+og = CoraGraphDataset(raw_dir=args.input_path)[0]
 
 # to bidirected graph, remove duplicated
 g = dgl.to_bidirected(og)
@@ -27,4 +27,4 @@ g = dgl.to_bidirected(og)
 # assign random edge weight
 g.edata['w'] = torch.rand((g.num_edges()))
 
-dgl.save_graphs(osp.join(args.path, dataset, 'dgl_data_processed'), g)
+dgl.save_graphs(osp.join(args.output_path, dataset, 'dgl_data_processed'), g)

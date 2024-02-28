@@ -3,7 +3,7 @@
 # LICENSE file in the root directory of this source tree.
 
 ALPHA=0.261
-EPSILON=1e-04
+EPSILON=1e-05
 K=150
 
 MACHINES=2  # number of machines(graph partitions)
@@ -21,13 +21,13 @@ EGO_GRAPH_FILE="${FILE_PATH}/${DATASET}_egograph_datas.pt"
 
 # calculate full-graph SSPPR
 python frontend/run_ppr.py --alpha "${ALPHA}" --epsilon "${EPSILON}" --k "${K}"\
-                           --version overlap \
                            --dataset "${DATASET}" \
                            --data_path "${DATA_PATH}" \
                            --inference_out_path "${FILE_PATH}" \
                            --num_machines "${MACHINES}" \
                            --num_processes "${PPR_PROCESSES}" \
                            --num_threads 4 \
+                           --version overlap \
                            --global_nid
 
 # construct full-graph Top-K PPR matrix (deprecated)

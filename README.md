@@ -45,8 +45,8 @@ The directory structure of this project is as follows:
 
 ## Installation
 ### Dependencies
-- [pytorch](https://pytorch.org/get-started/locally/) 1.13.1+
-- [dgl](https://www.dgl.ai/pages/start.html) 1.0.0+
+- [pytorch](https://pytorch.org/get-started/locally/) 2.1
+- [dgl](https://www.dgl.ai/pages/start.html) 2.0
 ### Compile C++ engine
 ```
 python engine/setup.py build_ext --build-lib=frontend
@@ -55,7 +55,9 @@ python engine/setup.py build_ext --build-lib=frontend
 ## Data Generation
 Before running the graph engine in each machine, we need to generate the graph shards first:
 ```
-python data_generation/gen_engine_data.py --data ogbn-products --num_partition 4 --dgl_data_path <path-to-store-dgl-dataset> --path <path-to-store-graph-engine-data>
+python data_generation/preprocess_ogb.py --data ogbn-products --unweighted --input_path <path-to-dgl-dataset> --output_path <path-to-preprocessed-data> 
+
+python data_generation/gen_engine_data.py --data ogbn-products --num_partition 4 --input_path <path-to-preprocessed-data> --output_path <path-to-engine-data>
 ```
 Here we download and preprocess the dataset in dgl format, then convert it to our graph engine format.
 
@@ -66,14 +68,14 @@ Griphin currently supports high-performance distributed `Random Walk` and `Perso
 
 - Distributed random walk 
   ```
-  python frontend/run_rw.py --num_roots 8192 --walk_length 15 --num_machines 4
+  python frontend/run_rw.py --dataset ogbn-products --data_path <path-to-engine-data> --num_roots 8192 --walk_length 15 --num_machines 4
   ```
   Key arguments: 
   - `--version 2`: version 2 is the latest and the best version
   - `--num_threads 1`: currently, set num threads to 1 gives the best result
 - Distributed PPR ([Pseudocode](https://hydrapse.notion.site/Dist-PPR-Pseudocode-20761fc2a93f431ba0eb5de9478ebd40))
   ```
-  python frontend/run_ppr.py --inference_out_path test_dir --alpha 0.462 --epsilon 1e-6 --k 150
+  python frontend/run_ppr.py --dataset ogbn-products --data_path <path-to-engine-data> --inference_out_path <path-to-ppr-data> --alpha 0.462 --epsilon 1e-6 --k 150
   ```
   Key arguments:
   - `--inference_out_path your_path`: output path for PPR results; **perform full graph SSPPR inference if it exists**
