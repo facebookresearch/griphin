@@ -14,7 +14,7 @@ from tqdm import tqdm
 def extract_core_global_ids(parts):
     part_core_global_ids = []
     for i in range(len(parts)):
-        part = parts[i]
+        part = parts[i]  # parts is a dict
         core_mask = part.ndata['inner_node'].type(torch.bool)
         part_global_id = part.ndata['orig_id']
         part_core_global_ids.append(part_global_id[core_mask])
@@ -43,7 +43,7 @@ args = parser.parse_args()
 data_name = args.dataset
 data_path = args.data_path
 K = args.K
-DATA_DIR = args.file_path
+FILE_DIR = args.file_path
 
 # load dataset
 if data_name == 'ogbn-products':
@@ -73,7 +73,7 @@ pbar.set_description(f'Load PPR results')
 res = []
 for i in range(args.num_machines):
     for j in range(args.num_processes):
-        res += torch.load(os.path.join(DATA_DIR, '{}_{}_{}.pt'.format(data_name, i, j)))
+        res += torch.load(os.path.join(FILE_DIR, '{}_{}_{}.pt'.format(data_name, i, j)))
         pbar.update(1)
 pbar.close()
 print('PPR Results Loading Finished')
@@ -88,5 +88,5 @@ for i, r in tqdm(enumerate(res)):
     global_topk.append(vec)
 ppr_matrix = torch.empty((dataset['X'].shape[0], K), dtype=torch.long)
 ppr_matrix[gids] = torch.stack(global_topk)
-torch.save(ppr_matrix, os.path.join(DATA_DIR, '{}_ppr_matrix.pt'.format(data_name)))
+torch.save(ppr_matrix, os.path.join(FILE_DIR, '{}_ppr_matrix.pt'.format(data_name)))
 print('PPR Matrix Construction Finished!')

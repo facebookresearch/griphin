@@ -6,6 +6,8 @@ from pathlib import Path
 import os.path as osp
 import re
 
+import torch
+
 
 def get_root_path():
     current_dir = Path(__file__)
@@ -49,3 +51,13 @@ def extract_hostname_list(nodelist_str):
     hostnames.extend(single_entries)
 
     return hostnames
+
+
+def extract_core_global_ids(parts):
+    part_core_global_ids = []
+    for i in range(len(parts)):
+        part = parts[i]  # parts is a dict
+        core_mask = part.ndata['inner_node'].type(torch.bool)
+        part_global_id = part.ndata['orig_id']
+        part_core_global_ids.append(part_global_id[core_mask])
+    return part_core_global_ids

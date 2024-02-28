@@ -26,10 +26,13 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--data_name', type=str, default='ogbn-products')
 parser.add_argument('--dgl_path', type=str, default='/data/gangda/dgl')
 parser.add_argument('--data_path', type=str, default='data/ogbn-products-p2')
-parser.add_argument('--file_path', type=str, default='intermediate')
-parser.add_argument('--ppr', type=str, default='engine')
+# parser.add_argument('--file_path', type=str, default='intermediate')
+parser.add_argument('--ppr_file', type=str, default='test_dir/ogbn-products_0.261_1e-05_top150.pt')
 parser.add_argument('--num_processes', type=int, default=20)
+parser.add_argument('--ppr', type=str, default='engine')
 args = parser.parse_args()
+
+file_path = os.path.dirname(args.ppr_file)
 
 
 def to_edge_index(rowptr, col):
@@ -56,7 +59,9 @@ def run(rank, ppr_matrix, y, rowptr, col):
     if rank == 0:
         batch_index = tqdm(batch_index)
     for i, bid in enumerate(batch_index):
-        subset, inv = torch.cat([bid.unsqueeze(dim=0), ppr_matrix[bid]]).unique(return_inverse=True)
+        ppr_vec = ppr_matrix[bid]
+        ppr_vec[ppr_vec == -1] = bid
+        subset, inv = torch.cat([bid.unsqueeze(dim=0), ppr_vec]).unique(return_inverse=True)
         ego_index = inv[0].item()
 
         ego_rowptr, ego_col, _ = libsubgraph(rowptr, col, subset, return_edge_id=False)
@@ -85,9 +90,9 @@ def run(rank, ppr_matrix, y, rowptr, col):
         'ego_idx':  ego_idx
     }
     if args.ppr == 'pprgo':
-        torch.save(datas, osp.join(args.file_path, '{}_pprgo_egograph_datas_{}.pt'.format(args.data_name, rank)))
+        torch.save(datas, osp.join(file_path, '{}_pprgo_egograph_datas_{}.pt'.format(args.data_name, rank)))
     else:
-        torch.save(datas, osp.join(args.file_path, '{}_egograph_datas_{}.pt'.format(args.data_name, rank)))
+        torch.save(datas, osp.join(file_path, '{}_egograph_datas_{}.pt'.format(args.data_name, rank)))
     del datas
     print('Rank', rank, 'finished')
 
@@ -98,9 +103,9 @@ def assemble_data_list():
     n_ptr, e_ptr = 0, 0
     for r in tqdm(range(args.num_processes)):
         if args.ppr == 'pprgo':
-            data = torch.load(osp.join(args.file_path, '{}_pprgo_egograph_datas_{}.pt'.format(args.data_name, r)))
+            data = torch.load(osp.join(file_path, '{}_pprgo_egograph_datas_{}.pt'.format(args.data_name, r)))
         else:
-            data = torch.load(osp.join(args.file_path, '{}_egograph_datas_{}.pt'.format(args.data_name, r)))
+            data = torch.load(osp.join(file_path, '{}_egograph_datas_{}.pt'.format(args.data_name, r)))
         node_offset.append(data['node_offset'] + n_ptr)
         edge_offset.append(data['edge_offset'] + e_ptr)
         sub_nidx.append(data['sub_nidx'])
@@ -136,11 +141,8 @@ if __name__ == '__main__':
     rowptr, col, _ = adj.csr()
 
     # load ppr matrix
-    ppr_matrix = None
-    if args.ppr == 'pprgo':
-        ppr_matrix = torch.load(osp.join(args.file_path, '{}_pprgo_ppr_matrix.pt'.format(args.data_name)))
-    else:
-        ppr_matrix = torch.load(osp.join(args.file_path, '{}_ppr_matrix.pt'.format(args.data_name)))
+    results = torch.load(args.ppr_file)
+    ppr_matrix = results['global_node_ids']
 
     # extract subgraphs
     mp.spawn(run, nprocs=args.num_processes, args=(ppr_matrix, y, rowptr, col), join=True)
@@ -155,12 +157,13 @@ if __name__ == '__main__':
 
     # store assembled datas
     if args.ppr == 'pprgo':
-        path = osp.join(args.file_path, '{}_pprgo_egograph_datas.pt'.format(args.data_name))
+        path = osp.join(file_path, '{}_pprgo_egograph_datas.pt'.format(args.data_name))
         for r in range(args.num_processes):
-            os.remove(osp.join(args.file_path, '{}_pprgo_egograph_datas_{}.pt'.format(args.data_name, r)))
+            os.remove(osp.join(file_path, '{}_pprgo_egograph_datas_{}.pt'.format(args.data_name, r)))
     else:
-        path = osp.join(args.file_path, '{}_egograph_datas.pt'.format(args.data_name))
+        path = osp.join(file_path, '{}_egograph_datas.pt'.format(args.data_name))
         for r in range(args.num_processes):
-            os.remove(osp.join(args.file_path, '{}_egograph_datas_{}.pt'.format(args.data_name, r)))
+            os.remove(osp.join(file_path, '{}_egograph_datas_{}.pt'.format(args.data_name, r)))
     torch.save(datas, path)
     print('EGO Graph Matrix Processing Finished!')
+    print('Saved Path: {}'.format(path))

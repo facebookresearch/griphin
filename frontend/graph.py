@@ -5,6 +5,7 @@
 import time
 from collections import defaultdict
 from typing import Tuple, Dict, List, Union
+from threading import Lock
 
 import torch
 import graph_engine
@@ -28,10 +29,23 @@ WEIGHT_TYPE = torch.float32
 
 
 class DistGraphStorage:
-    def __init__(self, rrefs, machine_rank):
+    def __init__(self, rrefs, src_rrefs, machine_rank):
         self.rank = rpc.get_worker_info().id
         self.machine_rank = machine_rank
         self.rrefs = rrefs
+        self.src_rrefs = src_rrefs
+
+    def is_finished(self):
+        flag = True
+        for i, src_rref in enumerate(self.src_rrefs):
+            if i == self.machine_rank: continue
+            if not src_rref.rpc_sync().is_finished():
+                flag = False
+        return flag
+
+    def get_source_ids(self):
+        begin, end = self.src_rrefs[self.machine_rank].rpc_sync().get_source_ids()
+        return torch.arange(begin, end, dtype=VERTEX_ID_TYPE)
 
     def get_neighbor_infos(self,
                            dst_machine_rank: SHARD_ID_TYPE,
@@ -43,6 +57,27 @@ class DistGraphStorage:
         else:
             # return self.rrefs[dst_machine_rank].rpc_async().get_neighbor_infos(vertex_ids)
             return self.rrefs[dst_machine_rank].rpc_async().get_neighbor_infos_remote(vertex_ids)
+
+
+class SourceNodesManager:
+    def __init__(self, machine_rank, end_idx, batch_size=1000):
+        self.machine_rank = machine_rank
+        self.batch_size = batch_size
+        self.end_idx = end_idx
+        self.start_idx = 0
+        self.lock = Lock()
+
+    def is_finished(self):
+        return self.start_idx >= self.end_idx
+
+    def get_source_ids(self):
+        if self.is_finished():
+            return self.end_idx, self.end_idx
+        with self.lock:
+            begin = self.start_idx
+            end = min(begin + self.batch_size, self.end_idx)
+            self.start_idx = end
+        return begin, end
 
 
 class SubGraphDataManager:
